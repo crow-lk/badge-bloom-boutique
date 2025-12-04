@@ -1,3 +1,4 @@
+import logo from "@/assets/logo.jpeg";
 import { ShoppingBag } from "lucide-react";
 
 const Navbar = () => {
@@ -5,7 +6,10 @@ const Navbar = () => {
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
       <div className="container mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-light tracking-wider text-foreground">ESSENCE</h1>
+          <div className="flex items-center gap-3">
+            <img src={logo} alt="Aaliyaa logo" className="h-10 w-10 object-contain" />
+            <span className="hidden text-sm font-light uppercase tracking-[0.35em] text-foreground sm:inline">Aaliyaa</span>
+          </div>
           
           <div className="hidden md:flex items-center gap-8">
             <a href="#shop" className="text-sm font-light tracking-wide text-foreground hover:text-primary transition-colors">
