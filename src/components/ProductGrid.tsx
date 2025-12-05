@@ -5,10 +5,10 @@ import coatImage from "@/assets/product-coat.jpg";
 import sweaterImage from "@/assets/product-sweater.jpg";
 
 const products = [
-  { id: 1, name: "Essential T-Shirt", price: "$45", image: tshirtImage },
-  { id: 2, name: "Linen Trousers", price: "$89", image: pantsImage },
-  { id: 3, name: "Wool Coat", price: "$198", image: coatImage },
-  { id: 4, name: "Knit Sweater", price: "$75", image: sweaterImage },
+  { id: 1, name: "Essential T-Shirt", price: "$45", image: tshirtImage, slug: "essential-t-shirt" },
+  { id: 2, name: "Linen Trousers", price: "$89", image: pantsImage, slug: "linen-trousers" },
+  { id: 3, name: "Wool Coat", price: "$198", image: coatImage, slug: "wool-coat" },
+  { id: 4, name: "Knit Sweater", price: "$75", image: sweaterImage, slug: "knit-sweater" },
 ];
 
 const ProductGrid = () => {
@@ -31,6 +31,7 @@ const ProductGrid = () => {
               image={product.image}
               name={product.name}
               price={product.price}
+              slug={product.slug}
             />
           ))}
         </div>
