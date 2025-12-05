@@ -1,0 +1,210 @@
+import coatImage from "@/assets/product-coat.jpg";
+import pantsImage from "@/assets/product-pants.jpg";
+import sweaterImage from "@/assets/product-sweater.jpg";
+import tshirtImage from "@/assets/product-tshirt.jpg";
+import { useQuery } from "@tanstack/react-query";
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "https://aaliyaa.crowdemo.com";
+
+const fallbackImages = [tshirtImage, pantsImage, coatImage, sweaterImage];
+
+export type ApiProduct = {
+  id: number;
+  name: string;
+  slug: string;
+  sku_prefix?: string | null;
+  brand_id?: string | number | null;
+  category_id?: string | number | null;
+  collection_id?: string | number | null;
+  season?: string | null;
+  description?: string | null;
+  care_instructions?: string | null;
+  material_composition?: string | null;
+  hs_code?: string | null;
+  default_tax_id?: string | number | null;
+  status?: string | null;
+  selling_price?: number | null;
+  highlights?: string[] | null;
+  images?: string[] | null;
+};
+
+export type Product = {
+  id: number;
+  name: string;
+  slug: string;
+  price: number | null;
+  priceLabel: string;
+  image: string;
+  images: string[];
+  status: string;
+  sku_prefix?: string | null;
+  brand_id?: string | number | null;
+  category_id?: string | number | null;
+  collection_id?: string | number | null;
+  season?: string | null;
+  description?: string | null;
+  care_instructions?: string | null;
+  material_composition?: string | number | null;
+  hs_code?: string | null;
+  default_tax_id?: string | number | null;
+  highlights: string[];
+};
+
+const formatPrice = (value?: number | null) =>
+  value == null
+    ? "Price on request"
+    : new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+        maximumFractionDigits: 0,
+      }).format(value);
+
+const buildGallery = (index: number) =>
+  Array.from({ length: 4 }, (_, offset) => fallbackImages[(index + offset) % fallbackImages.length]);
+
+const buildHighlights = (product: ApiProduct) => {
+  const items: string[] = [];
+  if (product.season) {
+    items.push(`${product.season} ready`);
+  }
+  if (product.collection_id) {
+    items.push(`Collection ${product.collection_id}`);
+  }
+  if (items.length < 2) {
+    items.push("Crafted with care");
+  }
+  if (items.length < 2) {
+    items.push("Limited availability");
+  }
+  return items.slice(0, 2);
+};
+
+const normalizeProduct = (product: ApiProduct, index: number): Product => {
+  const gallery = product.images?.length ? product.images : buildGallery(index);
+
+  return {
+    id: product.id,
+    name: product.name ?? `Product ${product.id}`,
+    slug: product.slug ?? `product-${product.id}`,
+    price: product.selling_price ?? null,
+    priceLabel: formatPrice(product.selling_price),
+    image: gallery[0],
+    images: gallery,
+    status: product.status ?? "active",
+    sku_prefix: product.sku_prefix,
+    brand_id: product.brand_id,
+    category_id: product.category_id,
+    collection_id: product.collection_id,
+    season: product.season,
+    description: product.description ?? "Description coming soon.",
+    care_instructions: product.care_instructions ?? "Care instructions coming soon.",
+    material_composition: product.material_composition ?? "Material details coming soon.",
+    hs_code: product.hs_code ?? "—",
+    default_tax_id: product.default_tax_id ?? "—",
+    highlights: product.highlights?.length ? product.highlights : buildHighlights(product),
+  };
+};
+
+export const fallbackProducts: Product[] = [
+  {
+    id: 1,
+    name: "Essential T-Shirt",
+    slug: "essential-t-shirt",
+    price: 45,
+    priceLabel: formatPrice(45),
+    image: tshirtImage,
+    images: [tshirtImage, sweaterImage, pantsImage, coatImage],
+    status: "active",
+    sku_prefix: "AL-TSH",
+    brand_id: "Aaliyaa Atelier",
+    category_id: "Tops",
+    collection_id: "Foundations",
+    season: "All-season",
+    description:
+      "A featherlight organic cotton tee cut with a clean crew neckline for effortless layering. Moves with you and holds its shape all day.",
+    care_instructions: "Machine wash cold inside out. Lay flat to dry. Cool iron if needed. Avoid bleach to preserve color.",
+    material_composition: "95% Organic Cotton, 5% Elastane",
+    hs_code: "6109.10.00",
+    default_tax_id: "TAX-AL-01",
+    highlights: ["Breathable jersey knit", "Designed for layering"],
+  },
+  {
+    id: 2,
+    name: "Linen Trousers",
+    slug: "linen-trousers",
+    price: 89,
+    priceLabel: formatPrice(89),
+    image: pantsImage,
+    images: [pantsImage, coatImage, tshirtImage, sweaterImage],
+    status: "active",
+    sku_prefix: "AL-LIN",
+    brand_id: "Aaliyaa Atelier",
+    category_id: "Bottoms",
+    collection_id: "Resort",
+    season: "Spring/Summer",
+    description:
+      "Relaxed straight-leg linen trousers with a clean waistband, hidden side zip, and airy drape. Tailored to sit just right on the hip.",
+    care_instructions: "Hand wash cold or gentle cycle. Hang to dry and steam to release creases. Do not tumble dry.",
+    material_composition: "70% Linen, 30% Organic Cotton",
+    hs_code: "6204.69.00",
+    default_tax_id: "TAX-AL-02",
+    highlights: ["Cooling linen blend", "Travel-ready crease release"],
+  },
+  {
+    id: 3,
+    name: "Wool Coat",
+    slug: "wool-coat",
+    price: 198,
+    priceLabel: formatPrice(198),
+    image: coatImage,
+    images: [coatImage, pantsImage, sweaterImage, tshirtImage],
+    status: "active",
+    sku_prefix: "AL-WLC",
+    brand_id: "Aaliyaa Atelier",
+    category_id: "Outerwear",
+    collection_id: "Heritage",
+    season: "Fall/Winter",
+    description:
+      "Double-faced wool coat with minimalist lapels and a belt that shapes the waist without bulk. Fully lined for warmth without weight.",
+    care_instructions: "Dry clean only. Store on a wide hanger. Use a fabric brush to keep the wool fresh between wears.",
+    material_composition: "80% Responsible Wool, 20% Recycled Polyester",
+    hs_code: "6202.91.00",
+    default_tax_id: "TAX-AL-03",
+    highlights: ["Warmth without weight", "Lined for smooth layering"],
+  },
+  {
+    id: 4,
+    name: "Knit Sweater",
+    slug: "knit-sweater",
+    price: 75,
+    priceLabel: formatPrice(75),
+    image: sweaterImage,
+    images: [sweaterImage, tshirtImage, pantsImage, coatImage],
+    status: "preorder",
+    sku_prefix: "AL-KNT",
+    brand_id: "Aaliyaa Atelier",
+    category_id: "Knitwear",
+    collection_id: "Lounge",
+    season: "All-season",
+    description:
+      "Soft ribbed knit with a subtle mock neck and draped sleeves. Finished with clean cuffs that stay in place as you move.",
+    care_instructions: "Hand wash cold, reshape, and dry flat. Store folded to maintain the rib structure.",
+    material_composition: "60% Cotton, 30% Viscose, 10% Recycled Nylon",
+    hs_code: "6110.30.00",
+    default_tax_id: "TAX-AL-04",
+    highlights: ["Pill-resistant yarn", "Draped sleeves, clean cuffs"],
+  },
+];
+
+export const useProducts = () =>
+  useQuery({
+    queryKey: ["products"],
+    queryFn: async () => {
+      const response = await fetch(`${API_BASE_URL}/api/products`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch products");
+      }
+      const data = (await response.json()) as ApiProduct[];
+      return data.map(normalizeProduct);
+    },
+  });

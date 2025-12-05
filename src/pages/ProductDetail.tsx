@@ -1,135 +1,103 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import coatImage from "@/assets/product-coat.jpg";
-import pantsImage from "@/assets/product-pants.jpg";
-import sweaterImage from "@/assets/product-sweater.jpg";
-import tshirtImage from "@/assets/product-tshirt.jpg";
+import { fallbackProducts, useProducts, type Product } from "@/hooks/use-products";
 import { cn } from "@/lib/utils";
 import { ArrowLeft, Check, Heart, ShieldCheck, Sparkles, Truck } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
 
-type Product = {
-  name: string;
-  slug: string;
-  sku_prefix: string;
-  selling_price: number;
-  brand_id: string;
-  category_id: string;
-  collection_id: string;
-  season: string;
-  description: string;
-  care_instructions: string;
-  material_composition: string;
-  hs_code: string;
-  default_tax_id: string;
-  status: string;
-  images: string[];
-  highlights: string[];
-};
-
-const catalog: Product[] = [
-  {
-    name: "Essential T-Shirt",
-    slug: "essential-t-shirt",
-    sku_prefix: "AL-TSH",
-    selling_price: 45,
-    brand_id: "Aaliyaa Atelier",
-    category_id: "Tops",
-    collection_id: "Foundations",
-    season: "All-season",
-    description: "A featherlight organic cotton tee cut with a clean crew neckline for effortless layering. Moves with you and holds its shape all day.",
-    care_instructions: "Machine wash cold inside out. Lay flat to dry. Cool iron if needed. Avoid bleach to preserve color.",
-    material_composition: "95% Organic Cotton, 5% Elastane",
-    hs_code: "6109.10.00",
-    default_tax_id: "TAX-AL-01",
-    status: "Active",
-    images: [tshirtImage, sweaterImage, pantsImage, coatImage],
-    highlights: ["Breathable jersey knit", "Designed for layering"],
-  },
-  {
-    name: "Linen Trousers",
-    slug: "linen-trousers",
-    sku_prefix: "AL-LIN",
-    selling_price: 89,
-    brand_id: "Aaliyaa Atelier",
-    category_id: "Bottoms",
-    collection_id: "Resort",
-    season: "Spring/Summer",
-    description: "Relaxed straight-leg linen trousers with a clean waistband, hidden side zip, and airy drape. Tailored to sit just right on the hip.",
-    care_instructions: "Hand wash cold or gentle cycle. Hang to dry and steam to release creases. Do not tumble dry.",
-    material_composition: "70% Linen, 30% Organic Cotton",
-    hs_code: "6204.69.00",
-    default_tax_id: "TAX-AL-02",
-    status: "Active",
-    images: [pantsImage, coatImage, tshirtImage, sweaterImage],
-    highlights: ["Cooling linen blend", "Travel-ready crease release"],
-  },
-  {
-    name: "Wool Coat",
-    slug: "wool-coat",
-    sku_prefix: "AL-WLC",
-    selling_price: 198,
-    brand_id: "Aaliyaa Atelier",
-    category_id: "Outerwear",
-    collection_id: "Heritage",
-    season: "Fall/Winter",
-    description: "Double-faced wool coat with minimalist lapels and a belt that shapes the waist without bulk. Fully lined for warmth without weight.",
-    care_instructions: "Dry clean only. Store on a wide hanger. Use a fabric brush to keep the wool fresh between wears.",
-    material_composition: "80% Responsible Wool, 20% Recycled Polyester",
-    hs_code: "6202.91.00",
-    default_tax_id: "TAX-AL-03",
-    status: "Active",
-    images: [coatImage, pantsImage, sweaterImage, tshirtImage],
-    highlights: ["Warmth without weight", "Lined for smooth layering"],
-  },
-  {
-    name: "Knit Sweater",
-    slug: "knit-sweater",
-    sku_prefix: "AL-KNT",
-    selling_price: 75,
-    brand_id: "Aaliyaa Atelier",
-    category_id: "Knitwear",
-    collection_id: "Lounge",
-    season: "All-season",
-    description: "Soft ribbed knit with a subtle mock neck and draped sleeves. Finished with clean cuffs that stay in place as you move.",
-    care_instructions: "Hand wash cold, reshape, and dry flat. Store folded to maintain the rib structure.",
-    material_composition: "60% Cotton, 30% Viscose, 10% Recycled Nylon",
-    hs_code: "6110.30.00",
-    default_tax_id: "TAX-AL-04",
-    status: "Preorder",
-    images: [sweaterImage, tshirtImage, pantsImage, coatImage],
-    highlights: ["Pill-resistant yarn", "Draped sleeves, clean cuffs"],
-  },
-];
-
-const formatPrice = (value: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value);
+const displayValue = (value: string | number | null | undefined, fallback = "—") =>
+  value === undefined || value === null || value === "" ? fallback : String(value);
 
 const ProductDetail = () => {
   const { slug } = useParams<{ slug: string }>();
+  const { data, isLoading, isError } = useProducts();
 
-  const product = useMemo(
-    () => catalog.find((item) => item.slug === slug) ?? catalog[0],
-    [slug],
-  );
+  const products = useMemo(() => {
+    if (data?.length) return data;
+    if (!isLoading) return fallbackProducts;
+    return [] as Product[];
+  }, [data, isLoading]);
 
-  const [activeImage, setActiveImage] = useState(product.images[0]);
+  const product = useMemo(() => {
+    if (!products.length) return undefined;
+    if (slug) {
+      const match = products.find((item) => item.slug === slug);
+      if (match) return match;
+    }
+    return products[0];
+  }, [products, slug]);
+
+  const [activeImage, setActiveImage] = useState(product?.images?.[0] ?? null);
 
   useEffect(() => {
-    setActiveImage(product.images[0]);
+    if (product?.images?.[0]) {
+      setActiveImage(product.images[0]);
+    }
   }, [product]);
 
   const relatedProducts = useMemo(
-    () => catalog.filter((item) => item.slug !== product.slug).slice(0, 3),
-    [product.slug],
+    () => (product ? products.filter((item) => item.slug !== product.slug).slice(0, 3) : []),
+    [product, products],
   );
+
+  const showLoading = isLoading && !product;
+
+  if (showLoading) {
+    return (
+      <div className="min-h-screen bg-background text-foreground">
+        <Navbar />
+        <main className="pt-28 pb-16">
+          <div className="container mx-auto px-6 space-y-12">
+            <ProductDetailSkeleton />
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div className="min-h-screen bg-background text-foreground">
+        <Navbar />
+        <main className="pt-28 pb-16">
+          <div className="container mx-auto px-6 space-y-6">
+            <Alert variant="destructive">
+              <AlertTitle>We couldn&apos;t find this product</AlertTitle>
+              <AlertDescription>Try returning to the shop to browse all items.</AlertDescription>
+            </Alert>
+
+            <Link
+              to="/shop"
+              className="inline-flex items-center gap-2 text-sm font-light text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to shop
+            </Link>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  const heroImage = activeImage ?? product.images[0];
+  const statusVariant = product.status.toLowerCase() === "active" ? "outline" : "secondary";
+  const collectionLabel = product.collection_id ? `Collection ${product.collection_id}` : "New arrival";
+  const seasonLabel = displayValue(product.season, "Seasonless");
+  const brandLabel = displayValue(product.brand_id, "Aaliyaa Atelier");
+  const description = product.description ?? "Description coming soon.";
+  const careInstructions = product.care_instructions ?? "Care instructions coming soon.";
+  const materialDetails = product.material_composition ?? "Material details coming soon.";
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -167,13 +135,20 @@ const ProductDetail = () => {
             </Link>
           </div>
 
+          {isError && (
+            <Alert variant="destructive">
+              <AlertTitle>Using fallback product data</AlertTitle>
+              <AlertDescription>We couldn&apos;t reach the live catalog API. Data shown below comes from local fixtures.</AlertDescription>
+            </Alert>
+          )}
+
           <div className="grid items-start gap-10 lg:grid-cols-[1.05fr_0.95fr]">
             <div className="space-y-4">
               <Card className="overflow-hidden border-0 bg-card shadow-sm">
                 <div className="relative">
                   <div className="aspect-[4/5] w-full overflow-hidden bg-muted">
                     <img
-                      src={activeImage}
+                      src={heroImage}
                       alt={product.name}
                       className="h-full w-full object-cover transition duration-500"
                     />
@@ -181,10 +156,10 @@ const ProductDetail = () => {
 
                   <div className="absolute left-4 top-4 flex flex-wrap gap-2">
                     <Badge variant="secondary" className="backdrop-blur">
-                      {product.collection_id} collection
+                      {collectionLabel}
                     </Badge>
                     <Badge variant="outline" className="bg-background/80 backdrop-blur">
-                      {product.season}
+                      {seasonLabel}
                     </Badge>
                   </div>
                 </div>
@@ -216,16 +191,16 @@ const ProductDetail = () => {
                 <div>
                   <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">Aaliyaa</p>
                   <h1 className="mt-3 text-3xl font-light tracking-tight md:text-4xl">{product.name}</h1>
-                  <p className="mt-3 text-sm text-muted-foreground">{product.description}</p>
+                  <p className="mt-3 text-sm text-muted-foreground">{description}</p>
                 </div>
-                <Badge variant={product.status.toLowerCase() === "active" ? "outline" : "secondary"}>
+                <Badge variant={statusVariant}>
                   {product.status}
                 </Badge>
               </div>
 
               <div className="flex flex-wrap items-center gap-4">
-                <span className="text-3xl font-light">{formatPrice(product.selling_price)}</span>
-                <Badge variant="secondary">{product.brand_id}</Badge>
+                <span className="text-3xl font-light">{product.priceLabel}</span>
+                <Badge variant="secondary">{brandLabel}</Badge>
               </div>
 
               <div className="space-y-3">
@@ -252,12 +227,12 @@ const ProductDetail = () => {
               <Separator />
 
               <div className="grid gap-4 md:grid-cols-2">
-                <Spec label="SKU prefix" value={product.sku_prefix} />
-                <Spec label="Category" value={product.category_id} />
-                <Spec label="Collection" value={product.collection_id} />
-                <Spec label="Season" value={product.season} />
-                <Spec label="HS code" value={product.hs_code} />
-                <Spec label="Default tax ID" value={product.default_tax_id} />
+                <Spec label="SKU prefix" value={displayValue(product.sku_prefix)} />
+                <Spec label="Category" value={displayValue(product.category_id)} />
+                <Spec label="Collection" value={displayValue(product.collection_id)} />
+                <Spec label="Season" value={displayValue(product.season, "Seasonless")} />
+                <Spec label="HS code" value={displayValue(product.hs_code)} />
+                <Spec label="Default tax ID" value={displayValue(product.default_tax_id)} />
               </div>
 
               <div className="rounded-lg border border-border bg-muted/30 p-4">
@@ -284,15 +259,15 @@ const ProductDetail = () => {
             <TabsContent value="details">
               <Card className="border-0 bg-card/80 p-6 shadow-sm backdrop-blur">
                 <div className="grid gap-4 md:grid-cols-3">
-                  <Detail title="Material" value={product.material_composition} />
-                  <Detail title="Brand" value={product.brand_id} />
-                  <Detail title="Category" value={product.category_id} />
-                  <Detail title="Season" value={product.season} />
-                  <Detail title="Collection" value={product.collection_id} />
-                  <Detail title="Status" value={product.status} />
+                  <Detail title="Material" value={displayValue(materialDetails)} />
+                  <Detail title="Brand" value={displayValue(product.brand_id, "Aaliyaa Atelier")} />
+                  <Detail title="Category" value={displayValue(product.category_id)} />
+                  <Detail title="Season" value={displayValue(product.season, "Seasonless")} />
+                  <Detail title="Collection" value={displayValue(product.collection_id)} />
+                  <Detail title="Status" value={displayValue(product.status)} />
                 </div>
                 <Separator className="my-6" />
-                <p className="text-sm leading-relaxed text-muted-foreground">{product.description}</p>
+                <p className="text-sm leading-relaxed text-muted-foreground">{description}</p>
               </Card>
             </TabsContent>
 
@@ -303,7 +278,7 @@ const ProductDetail = () => {
                     <Check className="h-4 w-4 text-primary" />
                     <p className="text-sm font-medium tracking-wide text-foreground">Care instructions</p>
                   </div>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{product.care_instructions}</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{careInstructions}</p>
                 </div>
               </Card>
             </TabsContent>
@@ -311,9 +286,9 @@ const ProductDetail = () => {
             <TabsContent value="logistics">
               <Card className="border-0 bg-card/80 p-6 shadow-sm backdrop-blur">
                 <div className="grid gap-4 md:grid-cols-3">
-                  <Detail title="HS code" value={product.hs_code} />
-                  <Detail title="Default tax ID" value={product.default_tax_id} />
-                  <Detail title="SKU prefix" value={product.sku_prefix} />
+                  <Detail title="HS code" value={displayValue(product.hs_code)} />
+                  <Detail title="Default tax ID" value={displayValue(product.default_tax_id)} />
+                  <Detail title="SKU prefix" value={displayValue(product.sku_prefix)} />
                 </div>
                 <Separator className="my-6" />
                 <div className="grid gap-4 md:grid-cols-2">
@@ -362,11 +337,13 @@ const ProductDetail = () => {
                   </div>
                   <div className="space-y-2 p-5">
                     <div className="flex items-center justify-between">
-                      <p className="text-sm uppercase tracking-[0.25em] text-muted-foreground">{item.collection_id}</p>
-                      <Badge variant="outline">{item.status}</Badge>
+                      <p className="text-sm uppercase tracking-[0.25em] text-muted-foreground">
+                        {displayValue(item.collection_id, "Collection")}
+                      </p>
+                      <Badge variant="outline">{displayValue(item.status)}</Badge>
                     </div>
                     <h4 className="text-lg font-light tracking-wide">{item.name}</h4>
-                    <p className="text-sm text-muted-foreground">{formatPrice(item.selling_price)}</p>
+                    <p className="text-sm text-muted-foreground">{item.priceLabel}</p>
                   </div>
                 </Link>
               ))}
@@ -409,6 +386,40 @@ const LogisticsItem = ({
       <p className="text-sm font-medium tracking-wide text-foreground">{title}</p>
       <p className="text-sm text-muted-foreground">{description}</p>
     </div>
+  </div>
+);
+
+const ProductDetailSkeleton = () => (
+  <div className="grid items-start gap-10 lg:grid-cols-[1.05fr_0.95fr]">
+    <div className="space-y-4">
+      <Card className="overflow-hidden border-0 bg-card shadow-sm">
+        <Skeleton className="aspect-[4/5] w-full" />
+      </Card>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <Skeleton key={`thumb-${index}`} className="h-28 w-full rounded-md" />
+        ))}
+      </div>
+    </div>
+
+    <Card className="space-y-6 border-0 bg-card/90 p-8 shadow-sm backdrop-blur">
+      <Skeleton className="h-4 w-28" />
+      <Skeleton className="h-10 w-3/4" />
+      <Skeleton className="h-16 w-full" />
+
+      <div className="flex items-center gap-4">
+        <Skeleton className="h-9 w-28" />
+        <Skeleton className="h-6 w-20" />
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <Skeleton key={`spec-${index}`} className="h-12 w-full rounded-md" />
+        ))}
+      </div>
+
+      <Skeleton className="h-14 w-full rounded-md" />
+    </Card>
   </div>
 );
 

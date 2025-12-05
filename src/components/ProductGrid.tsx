@@ -1,17 +1,15 @@
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
+import { fallbackProducts, useProducts } from "@/hooks/use-products";
 import ProductCard from "./ProductCard";
-import tshirtImage from "@/assets/product-tshirt.jpg";
-import pantsImage from "@/assets/product-pants.jpg";
-import coatImage from "@/assets/product-coat.jpg";
-import sweaterImage from "@/assets/product-sweater.jpg";
 
-const products = [
-  { id: 1, name: "Essential T-Shirt", price: "$45", image: tshirtImage, slug: "essential-t-shirt" },
-  { id: 2, name: "Linen Trousers", price: "$89", image: pantsImage, slug: "linen-trousers" },
-  { id: 3, name: "Wool Coat", price: "$198", image: coatImage, slug: "wool-coat" },
-  { id: 4, name: "Knit Sweater", price: "$75", image: sweaterImage, slug: "knit-sweater" },
-];
+const loadingSlots = Array.from({ length: 4 });
 
 const ProductGrid = () => {
+  const { data, isLoading, isError } = useProducts();
+
+  const products = data?.length ? data : !isLoading ? fallbackProducts : [];
+
   return (
     <section id="shop" className="py-24 bg-background">
       <div className="container mx-auto px-6">
@@ -23,17 +21,34 @@ const ProductGrid = () => {
             Curated pieces for effortless style
           </p>
         </div>
+
+        {isError && (
+          <Alert variant="destructive" className="mb-8">
+            <AlertTitle>Couldn&apos;t reach the product API</AlertTitle>
+            <AlertDescription>Showing placeholder pieces until the connection comes back.</AlertDescription>
+          </Alert>
+        )}
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {products.map((product) => (
-            <ProductCard
-              key={product.id}
-              image={product.image}
-              name={product.name}
-              price={product.price}
-              slug={product.slug}
-            />
-          ))}
+          {isLoading && !products.length
+            ? loadingSlots.map((_, index) => (
+                <div key={`product-skeleton-${index}`} className="space-y-4">
+                  <Skeleton className="h-80 w-full rounded-xl" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-3 w-1/3" />
+                  </div>
+                </div>
+              ))
+            : products.map((product) => (
+                <ProductCard
+                  key={product.slug}
+                  image={product.image}
+                  name={product.name}
+                  price={product.priceLabel}
+                  slug={product.slug}
+                />
+              ))}
         </div>
       </div>
     </section>
