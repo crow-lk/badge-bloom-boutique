@@ -239,7 +239,7 @@ const ProductDetail = () => {
                 <div>
                   <p className="text-[11px] uppercase tracking-[0.35em] text-muted-foreground">Aaliyaa</p>
                   <h1 className="mt-2 text-2xl font-light tracking-tight md:text-3xl">{product.name}</h1>
-                  <p className="mt-2 text-sm text-muted-foreground md:text-base">{description}</p>
+                  <p className="mt-2 text-sm text-muted-foreground md:text-base text-justify">{description}</p>
                 </div>
                 <Badge variant={statusVariant}>
                   {product.status}
@@ -249,18 +249,6 @@ const ProductDetail = () => {
               <div className="flex flex-wrap items-center gap-4">
                 <span className="text-2xl font-light md:text-3xl">{product.priceLabel}</span>
                 <Badge variant="secondary">{brandLabel}</Badge>
-              </div>
-
-              <div className="space-y-2">
-                <p className="text-sm font-medium tracking-[0.18em] text-muted-foreground">Highlights</p>
-                <div className="grid gap-2 md:grid-cols-2">
-                  {product.highlights.map((item) => (
-                    <div key={item} className="flex items-start gap-2 rounded-md bg-muted/60 px-3 py-2">
-                      <Sparkles className="mt-0.5 h-4 w-4 text-primary" />
-                      <p className="text-sm font-light text-foreground">{item}</p>
-                    </div>
-                  ))}
-                </div>
               </div>
 
               <div className="flex flex-col gap-2.5 sm:flex-row">
@@ -288,7 +276,7 @@ const ProductDetail = () => {
                   <ShieldCheck className="h-5 w-5 text-primary" />
                   <div>
                     <p className="text-sm font-medium tracking-[0.12em] text-foreground">Quality assurance</p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-muted-foreground text-justify">
                       Each piece is inspected for stitch integrity, color-fastness, and finish before it leaves our studio.
                     </p>
                   </div>
@@ -315,7 +303,7 @@ const ProductDetail = () => {
                   <Detail title="Status" value={displayValue(product.status)} />
                 </div>
                 <Separator className="my-4" />
-                <p className="text-sm leading-relaxed text-muted-foreground">{description}</p>
+                <p className="text-sm leading-relaxed text-muted-foreground text-justify">{description}</p>
               </Card>
             </TabsContent>
 
@@ -326,7 +314,7 @@ const ProductDetail = () => {
                     <Check className="h-4 w-4 text-primary" />
                     <p className="text-sm font-medium tracking-wide text-foreground">Care instructions</p>
                   </div>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{careInstructions}</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed text-justify">{careInstructions}</p>
                 </div>
               </Card>
             </TabsContent>
@@ -432,7 +420,7 @@ const LogisticsItem = ({
     <div className="mt-1">{icon}</div>
     <div>
       <p className="text-sm font-medium tracking-wide text-foreground">{title}</p>
-      <p className="text-sm text-muted-foreground">{description}</p>
+      <p className="text-sm text-muted-foreground text-justify">{description}</p>
     </div>
   </div>
 );

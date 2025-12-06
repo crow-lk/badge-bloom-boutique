@@ -147,4 +147,23 @@ All colors MUST be HSL.
     backface-visibility: hidden;
     transform-style: preserve-3d;
   }
+
+  @keyframes logo-float {
+    0% {
+      transform: translateY(0) scale(1);
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.08);
+    }
+    50% {
+      transform: translateY(-8px) scale(1.01);
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.12);
+    }
+    100% {
+      transform: translateY(0) scale(1);
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.08);
+    }
+  }
+
+  .animate-logo-float {
+    animation: logo-float 6s ease-in-out infinite;
+  }
 }

@@ -13,13 +13,17 @@ const ProductGrid = () => {
   return (
     <section id="shop" className="py-24 bg-background">
       <div className="container mx-auto px-6">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-light tracking-wider mb-4 text-foreground">
-            New Arrivals
-          </h2>
-          <p className="text-muted-foreground font-light">
-            Curated pieces for effortless style
-          </p>
+        <div className="text-center mb-8">
+          <h2 className="text-4xl md:text-5xl font-light tracking-wider mb-4 text-foreground">New Arrivals</h2>
+          <p className="text-muted-foreground font-light">Curated pieces for effortless style</p>
+          <div className="mt-4 flex justify-center">
+            <a
+              href="/products/all"
+              className="text-sm font-light text-primary underline-offset-4 transition hover:underline"
+            >
+              View all products
+            </a>
+          </div>
         </div>
 
         {isError && (
@@ -46,6 +50,7 @@ const ProductGrid = () => {
                   image={product.image}
                   name={product.name}
                   price={product.priceLabel}
+                  sizes={product.sizes}
                   slug={product.slug}
                 />
               ))}

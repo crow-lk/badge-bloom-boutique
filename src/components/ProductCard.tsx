@@ -5,22 +5,33 @@ interface ProductCardProps {
   image: string;
   name: string;
   price: string;
+  sizes?: string[];
   slug?: string;
 }
 
-const ProductCard = ({ image, name, price, slug }: ProductCardProps) => {
+const ProductCard = ({ image, name, price, sizes, slug }: ProductCardProps) => {
+  const sizeLabel = sizes?.length ? sizes.join(" · ") : "Sizes available";
+
   const card = (
-    <Card className="group h-full overflow-hidden border-0 bg-card transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
-      <div className="aspect-square overflow-hidden bg-muted">
+    <Card className="group relative h-full overflow-hidden border-0 bg-card transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
+      <div className="aspect-square overflow-hidden bg-muted relative">
         <img
           src={image}
           alt={name}
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
+        <div className="pointer-events-none absolute inset-0 flex items-end bg-gradient-to-t from-background/85 via-background/30 to-transparent opacity-0 translate-y-2 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+          <div className="w-full p-4 text-sm text-foreground">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Sizes: {sizeLabel}</p>
+          </div>
+        </div>
       </div>
       <div className="p-6">
         <h3 className="mb-2 text-lg font-light tracking-wide text-foreground">{name}</h3>
-        <p className="text-sm font-light text-muted-foreground">{price}</p>
+        <div className="space-y-1">
+          <p className="text-sm font-light text-muted-foreground">{price}</p>
+          {/* <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Sizes: {sizeLabel}</p> */}
+        </div>
       </div>
     </Card>
   );

@@ -13,6 +13,7 @@ export type ApiProduct = {
   name: string;
   slug: string;
   sku_prefix?: string | null;
+  sizes?: string[] | null;
   brand_id?: string | number | null;
   category_id?: string | number | null;
   collection_id?: string | number | null;
@@ -36,6 +37,7 @@ export type Product = {
   priceLabel: string;
   image: string;
   images: string[];
+  sizes: string[];
   status: string;
   sku_prefix?: string | null;
   brand_id?: string | number | null;
@@ -82,6 +84,7 @@ const buildHighlights = (product: ApiProduct) => {
 
 const normalizeProduct = (product: ApiProduct, index: number): Product => {
   const gallery = product.images?.length ? product.images : buildGallery(index);
+  const sizes = product.sizes?.length ? product.sizes : ["XS", "S", "M", "L", "XL"];
 
   return {
     id: product.id,
@@ -91,6 +94,7 @@ const normalizeProduct = (product: ApiProduct, index: number): Product => {
     priceLabel: formatPrice(product.selling_price),
     image: gallery[0],
     images: gallery,
+    sizes,
     status: product.status ?? "active",
     sku_prefix: product.sku_prefix,
     brand_id: product.brand_id,
@@ -115,6 +119,7 @@ export const fallbackProducts: Product[] = [
     priceLabel: formatPrice(45),
     image: tshirtImage,
     images: [tshirtImage, sweaterImage, pantsImage, coatImage],
+    sizes: ["XS", "S", "M", "L", "XL"],
     status: "active",
     sku_prefix: "AL-TSH",
     brand_id: "Aaliyaa Atelier",
@@ -137,6 +142,7 @@ export const fallbackProducts: Product[] = [
     priceLabel: formatPrice(89),
     image: pantsImage,
     images: [pantsImage, coatImage, tshirtImage, sweaterImage],
+    sizes: ["2", "4", "6", "8", "10"],
     status: "active",
     sku_prefix: "AL-LIN",
     brand_id: "Aaliyaa Atelier",
@@ -159,6 +165,7 @@ export const fallbackProducts: Product[] = [
     priceLabel: formatPrice(198),
     image: coatImage,
     images: [coatImage, pantsImage, sweaterImage, tshirtImage],
+    sizes: ["XS", "S", "M", "L"],
     status: "active",
     sku_prefix: "AL-WLC",
     brand_id: "Aaliyaa Atelier",
@@ -181,6 +188,7 @@ export const fallbackProducts: Product[] = [
     priceLabel: formatPrice(75),
     image: sweaterImage,
     images: [sweaterImage, tshirtImage, pantsImage, coatImage],
+    sizes: ["XS", "S", "M", "L", "XL"],
     status: "preorder",
     sku_prefix: "AL-KNT",
     brand_id: "Aaliyaa Atelier",

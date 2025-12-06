@@ -1,4 +1,5 @@
 import heroImage from "@/assets/hero-image.jpg";
+import logo from "@/assets/logo.jpeg";
 import { Button } from "@/components/ui/button";
 
 const Hero = () => {
@@ -12,9 +13,13 @@ const Hero = () => {
       </div>
       
       <div className="relative z-10 container mx-auto px-6 text-center">
-        <h2 className="text-5xl md:text-7xl font-light tracking-wider mb-6 text-foreground">
-          Minimalist Elegance
-        </h2>
+        <div className="mx-auto mb-6 flex items-center justify-center">
+          <img
+            src={logo}
+            alt="Aaliyaa logo"
+            className="h-40 w-40 rounded-full object-cover shadow-2xl md:h-48 md:w-48 animate-logo-float"
+          />
+        </div>
         <p className="text-lg md:text-xl font-light text-muted-foreground mb-8 max-w-2xl mx-auto">
           Timeless pieces crafted for the modern wardrobe
         </p>
