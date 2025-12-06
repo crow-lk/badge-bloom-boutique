@@ -53,10 +53,11 @@ export type Product = {
 const formatPrice = (value?: number | null) =>
   value == null
     ? "Price on request"
-    : new Intl.NumberFormat("en-US", {
+    : new Intl.NumberFormat("en-LK", {
         style: "currency",
-        currency: "USD",
-        maximumFractionDigits: 0,
+        currency: "LKR",
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
       }).format(value);
 
 const buildGallery = (index: number) =>

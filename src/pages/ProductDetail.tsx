@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fallbackProducts, useProducts, type Product } from "@/hooks/use-products";
 import { cn } from "@/lib/utils";
-import { ArrowLeft, Check, Heart, ShieldCheck, Sparkles, Truck } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Heart, ShieldCheck, Sparkles, Truck } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
 
@@ -36,13 +36,19 @@ const ProductDetail = () => {
     return products[0];
   }, [products, slug]);
 
-  const [activeImage, setActiveImage] = useState(product?.images?.[0] ?? null);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [flipDirection, setFlipDirection] = useState<"forward" | "backward">("forward");
 
   useEffect(() => {
-    if (product?.images?.[0]) {
-      setActiveImage(product.images[0]);
+    if (product?.images?.length) {
+      setCurrentImageIndex(0);
+      setFlipDirection("forward");
     }
   }, [product]);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [slug]);
 
   const relatedProducts = useMemo(
     () => (product ? products.filter((item) => item.slug !== product.slug).slice(0, 3) : []),
@@ -55,8 +61,8 @@ const ProductDetail = () => {
     return (
       <div className="min-h-screen bg-background text-foreground">
         <Navbar />
-        <main className="pt-28 pb-16">
-          <div className="container mx-auto px-6 space-y-12">
+        <main className="pt-24 pb-12">
+          <div className="container mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 space-y-10">
             <ProductDetailSkeleton />
           </div>
         </main>
@@ -69,8 +75,8 @@ const ProductDetail = () => {
     return (
       <div className="min-h-screen bg-background text-foreground">
         <Navbar />
-        <main className="pt-28 pb-16">
-          <div className="container mx-auto px-6 space-y-6">
+        <main className="pt-24 pb-12">
+          <div className="container mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 space-y-6">
             <Alert variant="destructive">
               <AlertTitle>We couldn&apos;t find this product</AlertTitle>
               <AlertDescription>Try returning to the shop to browse all items.</AlertDescription>
@@ -90,7 +96,15 @@ const ProductDetail = () => {
     );
   }
 
-  const heroImage = activeImage ?? product.images[0];
+  const heroImage = product.images[currentImageIndex] ?? product.images[0];
+  const canGoPrev = currentImageIndex > 0;
+  const canGoNext = currentImageIndex < product.images.length - 1;
+
+  const goToIndex = (index: number) => {
+    if (index === currentImageIndex) return;
+    setFlipDirection(index > currentImageIndex ? "forward" : "backward");
+    setCurrentImageIndex(Math.max(0, Math.min(product.images.length - 1, index)));
+  };
   const statusVariant = product.status.toLowerCase() === "active" ? "outline" : "secondary";
   const collectionLabel = product.collection_id ? `Collection ${product.collection_id}` : "New arrival";
   const seasonLabel = displayValue(product.season, "Seasonless");
@@ -103,9 +117,9 @@ const ProductDetail = () => {
     <div className="min-h-screen bg-background text-foreground">
       <Navbar />
 
-      <main className="pt-28 pb-16">
-        <div className="container mx-auto px-6 space-y-12">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <main className="pt-24 pb-12">
+        <div className="container mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 space-y-10">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem>
@@ -142,16 +156,46 @@ const ProductDetail = () => {
             </Alert>
           )}
 
-          <div className="grid items-start gap-10 lg:grid-cols-[1.05fr_0.95fr]">
-            <div className="space-y-4">
-              <Card className="overflow-hidden border-0 bg-card shadow-sm">
+          <div className="grid items-start gap-8 lg:grid-cols-[1.05fr_0.95fr]">
+            <div className="space-y-3">
+              <Card className="mx-auto w-full max-w-[480px] overflow-hidden border-0 bg-card shadow-sm md:max-w-[520px]">
                 <div className="relative">
-                  <div className="aspect-[4/5] w-full overflow-hidden bg-muted">
+                  <div className="aspect-[4/5] w-full max-h-[520px] overflow-hidden bg-muted relative [perspective:1400px]">
                     <img
+                      key={heroImage}
                       src={heroImage}
                       alt={product.name}
-                      className="h-full w-full object-cover transition duration-500"
+                      className={cn(
+                        "h-full w-full object-cover transition duration-500",
+                        flipDirection === "forward" ? "animate-flip-forward" : "animate-flip-backward",
+                      )}
                     />
+                    <div className="pointer-events-none absolute inset-0 flex items-center justify-between px-2 sm:px-3">
+                      {canGoPrev ? (
+                        <button
+                          type="button"
+                          className="pointer-events-auto inline-flex h-10 w-10 items-center justify-center text-foreground transition hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                          onClick={() => goToIndex(currentImageIndex - 1)}
+                          aria-label="Previous image"
+                        >
+                          <ArrowLeft className="h-5 w-5" />
+                        </button>
+                      ) : (
+                        <span className="h-10 w-10" aria-hidden />
+                      )}
+                      {canGoNext ? (
+                        <button
+                          type="button"
+                          className="pointer-events-auto inline-flex h-10 w-10 items-center justify-center text-foreground transition hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                          onClick={() => goToIndex(currentImageIndex + 1)}
+                          aria-label="Next image"
+                        >
+                          <ArrowRight className="h-5 w-5" />
+                        </button>
+                      ) : (
+                        <span className="h-10 w-10" aria-hidden />
+                      )}
+                    </div>
                   </div>
 
                   <div className="absolute left-4 top-4 flex flex-wrap gap-2">
@@ -165,33 +209,37 @@ const ProductDetail = () => {
                 </div>
               </Card>
 
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {product.images.map((image, index) => (
-                  <button
-                    key={`${image}-${index}`}
-                    type="button"
-                    onClick={() => setActiveImage(image)}
+              <div className="mx-auto w-full max-w-[480px] md:max-w-[520px]">
+                <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory touch-pan-x [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                  {product.images.map((image, index) => (
+                    <button
+                      key={`${image}-${index}`}
+                      type="button"
+                      onClick={() => goToIndex(index)}
+                      aria-pressed={currentImageIndex === index}
                     className={cn(
-                      "group overflow-hidden rounded-md border border-border bg-muted transition hover:shadow-md",
-                      activeImage === image && "ring-2 ring-primary ring-offset-2 ring-offset-background",
+                      "group flex-shrink-0 snap-start overflow-hidden rounded-md border border-border bg-muted transition hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                      currentImageIndex === index && "ring-2 ring-primary ring-offset-2 ring-offset-background",
                     )}
+                    aria-label={`View image ${index + 1}`}
                   >
                     <img
                       src={image}
                       alt={`${product.name} alt ${index + 1}`}
-                      className="h-28 w-full object-cover transition duration-300 group-hover:scale-105"
-                    />
-                  </button>
-                ))}
+                        className="h-14 w-14 object-cover transition duration-300 group-hover:scale-105 sm:h-16 sm:w-16 md:h-20 md:w-20"
+                      />
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
-            <Card className="space-y-8 border-0 bg-card/90 p-8 shadow-sm backdrop-blur">
+            <Card className="space-y-5 border-0 bg-card/90 p-5 shadow-sm backdrop-blur md:p-6">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">Aaliyaa</p>
-                  <h1 className="mt-3 text-3xl font-light tracking-tight md:text-4xl">{product.name}</h1>
-                  <p className="mt-3 text-sm text-muted-foreground">{description}</p>
+                  <p className="text-[11px] uppercase tracking-[0.35em] text-muted-foreground">Aaliyaa</p>
+                  <h1 className="mt-2 text-2xl font-light tracking-tight md:text-3xl">{product.name}</h1>
+                  <p className="mt-2 text-sm text-muted-foreground md:text-base">{description}</p>
                 </div>
                 <Badge variant={statusVariant}>
                   {product.status}
@@ -199,11 +247,11 @@ const ProductDetail = () => {
               </div>
 
               <div className="flex flex-wrap items-center gap-4">
-                <span className="text-3xl font-light">{product.priceLabel}</span>
+                <span className="text-2xl font-light md:text-3xl">{product.priceLabel}</span>
                 <Badge variant="secondary">{brandLabel}</Badge>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <p className="text-sm font-medium tracking-[0.18em] text-muted-foreground">Highlights</p>
                 <div className="grid gap-2 md:grid-cols-2">
                   {product.highlights.map((item) => (
@@ -215,18 +263,18 @@ const ProductDetail = () => {
                 </div>
               </div>
 
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <Button className="flex-1 bg-primary text-primary-foreground shadow-md hover:bg-primary/90">
+              <div className="flex flex-col gap-2.5 sm:flex-row">
+                <Button className="flex-1 h-11 bg-primary text-primary-foreground text-sm shadow-md hover:bg-primary/90 md:h-12">
                   Add to bag
                 </Button>
-                <Button variant="outline" size="icon" className="h-11 w-11">
+                <Button variant="outline" size="icon" className="h-11 w-11 md:h-12 md:w-12">
                   <Heart className="h-4 w-4" />
                 </Button>
               </div>
 
               <Separator />
 
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-3 md:grid-cols-2">
                 <Spec label="SKU prefix" value={displayValue(product.sku_prefix)} />
                 <Spec label="Category" value={displayValue(product.category_id)} />
                 <Spec label="Collection" value={displayValue(product.collection_id)} />
@@ -235,7 +283,7 @@ const ProductDetail = () => {
                 <Spec label="Default tax ID" value={displayValue(product.default_tax_id)} />
               </div>
 
-              <div className="rounded-lg border border-border bg-muted/30 p-4">
+              <div className="rounded-lg border border-border bg-muted/30 p-3">
                 <div className="flex items-center gap-3">
                   <ShieldCheck className="h-5 w-5 text-primary" />
                   <div>
@@ -249,7 +297,7 @@ const ProductDetail = () => {
             </Card>
           </div>
 
-          <Tabs defaultValue="details" className="space-y-6">
+          <Tabs defaultValue="details" className="space-y-5">
             <TabsList className="grid w-full grid-cols-3 bg-muted/70">
               <TabsTrigger value="details">Details</TabsTrigger>
               <TabsTrigger value="care">Care</TabsTrigger>
@@ -257,8 +305,8 @@ const ProductDetail = () => {
             </TabsList>
 
             <TabsContent value="details">
-              <Card className="border-0 bg-card/80 p-6 shadow-sm backdrop-blur">
-                <div className="grid gap-4 md:grid-cols-3">
+              <Card className="border-0 bg-card/80 p-5 shadow-sm backdrop-blur md:p-6">
+                <div className="grid gap-3 md:grid-cols-3">
                   <Detail title="Material" value={displayValue(materialDetails)} />
                   <Detail title="Brand" value={displayValue(product.brand_id, "Aaliyaa Atelier")} />
                   <Detail title="Category" value={displayValue(product.category_id)} />
@@ -266,13 +314,13 @@ const ProductDetail = () => {
                   <Detail title="Collection" value={displayValue(product.collection_id)} />
                   <Detail title="Status" value={displayValue(product.status)} />
                 </div>
-                <Separator className="my-6" />
+                <Separator className="my-4" />
                 <p className="text-sm leading-relaxed text-muted-foreground">{description}</p>
               </Card>
             </TabsContent>
 
             <TabsContent value="care">
-              <Card className="border-0 bg-card/80 p-6 shadow-sm backdrop-blur">
+              <Card className="border-0 bg-card/80 p-5 shadow-sm backdrop-blur md:p-6">
                 <div className="flex flex-col gap-4">
                   <div className="flex items-center gap-3 rounded-md bg-muted/50 px-4 py-3">
                     <Check className="h-4 w-4 text-primary" />
@@ -284,14 +332,14 @@ const ProductDetail = () => {
             </TabsContent>
 
             <TabsContent value="logistics">
-              <Card className="border-0 bg-card/80 p-6 shadow-sm backdrop-blur">
-                <div className="grid gap-4 md:grid-cols-3">
+              <Card className="border-0 bg-card/80 p-5 shadow-sm backdrop-blur md:p-6">
+                <div className="grid gap-3 md:grid-cols-3">
                   <Detail title="HS code" value={displayValue(product.hs_code)} />
                   <Detail title="Default tax ID" value={displayValue(product.default_tax_id)} />
                   <Detail title="SKU prefix" value={displayValue(product.sku_prefix)} />
                 </div>
-                <Separator className="my-6" />
-                <div className="grid gap-4 md:grid-cols-2">
+                <Separator className="my-4" />
+                <div className="grid gap-3 md:grid-cols-2">
                   <LogisticsItem
                     title="Fast shipping"
                     description="Tracked delivery in 3-5 business days for domestic orders."
@@ -307,11 +355,11 @@ const ProductDetail = () => {
             </TabsContent>
           </Tabs>
 
-          <section className="space-y-6">
+          <section className="space-y-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">Curated for you</p>
-                <h3 className="text-2xl font-light tracking-tight">More from Aaliyaa</h3>
+                <p className="text-[11px] uppercase tracking-[0.35em] text-muted-foreground">Curated for you</p>
+                <h3 className="text-xl font-light tracking-tight md:text-2xl">More from Aaliyaa</h3>
               </div>
               <Link
                 to="/shop"
@@ -335,14 +383,14 @@ const ProductDetail = () => {
                       className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                     />
                   </div>
-                  <div className="space-y-2 p-5">
+                  <div className="space-y-2 p-4 md:p-5">
                     <div className="flex items-center justify-between">
                       <p className="text-sm uppercase tracking-[0.25em] text-muted-foreground">
                         {displayValue(item.collection_id, "Collection")}
                       </p>
                       <Badge variant="outline">{displayValue(item.status)}</Badge>
                     </div>
-                    <h4 className="text-lg font-light tracking-wide">{item.name}</h4>
+                    <h4 className="text-base font-light tracking-wide md:text-lg">{item.name}</h4>
                     <p className="text-sm text-muted-foreground">{item.priceLabel}</p>
                   </div>
                 </Link>
@@ -380,7 +428,7 @@ const LogisticsItem = ({
   description: string;
   icon: ReactNode;
 }) => (
-  <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-4">
+  <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-3">
     <div className="mt-1">{icon}</div>
     <div>
       <p className="text-sm font-medium tracking-wide text-foreground">{title}</p>
@@ -390,29 +438,31 @@ const LogisticsItem = ({
 );
 
 const ProductDetailSkeleton = () => (
-  <div className="grid items-start gap-10 lg:grid-cols-[1.05fr_0.95fr]">
-    <div className="space-y-4">
-      <Card className="overflow-hidden border-0 bg-card shadow-sm">
-        <Skeleton className="aspect-[4/5] w-full" />
+  <div className="grid items-start gap-8 lg:grid-cols-[1.05fr_0.95fr]">
+    <div className="space-y-3">
+      <Card className="mx-auto w-full max-w-[480px] overflow-hidden border-0 bg-card shadow-sm md:max-w-[520px]">
+        <Skeleton className="aspect-[4/5] w-full max-h-[520px]" />
       </Card>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, index) => (
-          <Skeleton key={`thumb-${index}`} className="h-28 w-full rounded-md" />
-        ))}
+      <div className="mx-auto w-full max-w-[480px] md:max-w-[520px]">
+        <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory touch-pan-x [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <Skeleton key={`thumb-${index}`} className="h-14 w-14 flex-shrink-0 snap-start rounded-md sm:h-16 sm:w-16 md:h-20 md:w-20" />
+          ))}
+        </div>
       </div>
     </div>
 
-    <Card className="space-y-6 border-0 bg-card/90 p-8 shadow-sm backdrop-blur">
+    <Card className="space-y-5 border-0 bg-card/90 p-5 shadow-sm backdrop-blur md:p-6">
       <Skeleton className="h-4 w-28" />
       <Skeleton className="h-10 w-3/4" />
       <Skeleton className="h-16 w-full" />
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         <Skeleton className="h-9 w-28" />
         <Skeleton className="h-6 w-20" />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-3 md:grid-cols-2">
         {Array.from({ length: 6 }).map((_, index) => (
           <Skeleton key={`spec-${index}`} className="h-12 w-full rounded-md" />
         ))}
