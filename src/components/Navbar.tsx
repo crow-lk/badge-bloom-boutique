@@ -1,7 +1,7 @@
 import logo from "@/assets/logo.jpeg";
 import { fallbackProducts, useProducts } from "@/hooks/use-products";
 import { clearStoredAuth, getStoredToken, getStoredUser, logout, type AuthUser } from "@/lib/auth";
-import { LogOut, Search, Settings, ShoppingBag, User, X } from "lucide-react";
+import { LogOut, Menu, Search, Settings, ShoppingBag, User, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -15,6 +15,7 @@ const Navbar = () => {
   const [accountOpen, setAccountOpen] = useState(false);
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   const { data, isLoading } = useProducts();
@@ -83,13 +84,11 @@ const Navbar = () => {
       className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md shadow-sm relative"
       style={{ height: `${NAV_HEIGHT}px` }}
     >
-      <div className="container mx-auto flex h-full items-center px-6">
-        <div className="flex items-center gap-3.5">
-          <img src={logo} alt="Aaliyaa logo" className="h-12 w-12 rounded-full object-cover" />
-          <span className="hidden text-sm font-light uppercase tracking-[0.35em] text-foreground sm:inline">
-            Aaliyaa
-          </span>
-        </div>
+      <div className="container mx-auto flex h-full items-center px-4 sm:px-6">
+        <Link to="/" className="flex items-center gap-3.5 text-foreground hover:text-primary transition-colors">
+          <img src={logo} alt="Aaliyaa logo" className="h-14 w-14 rounded-full object-cover sm:h-12 sm:w-12" />
+          <span className="hidden text-sm font-light uppercase tracking-[0.35em] sm:inline">Aaliyaa</span>
+        </Link>
 
         <div className="flex-1 hidden items-center justify-center gap-8 md:flex">
           <a href="/shop" className="text-sm font-light tracking-wide text-foreground hover:text-primary transition-colors">
@@ -101,15 +100,15 @@ const Navbar = () => {
           <a href="/collections" className="text-sm font-light tracking-wide text-foreground hover:text-primary transition-colors">
             Collections
           </a>
-          <a href="#about" className="text-sm font-light tracking-wide text-foreground hover:text-primary transition-colors">
+          <a href="/about" className="text-sm font-light tracking-wide text-foreground hover:text-primary transition-colors">
             About
           </a>
-          <a href="#contact" className="text-sm font-light tracking-wide text-foreground hover:text-primary transition-colors">
+          <a href="/contact" className="text-sm font-light tracking-wide text-foreground hover:text-primary transition-colors">
             Contact
           </a>
         </div>
 
-        <div className="ml-auto flex items-center gap-5">
+        <div className="ml-auto flex items-center gap-4 sm:gap-5">
           <button
             className="text-foreground hover:text-primary transition-colors"
             aria-label="Search"
@@ -196,6 +195,13 @@ const Navbar = () => {
           <button className="text-foreground hover:text-primary transition-colors" aria-label="Shopping bag">
             <ShoppingBag className="w-5 h-5" />
           </button>
+          <button
+            className="text-foreground hover:text-primary transition-colors md:hidden"
+            aria-label="Menu"
+            onClick={() => setMobileMenuOpen((prev) => !prev)}
+          >
+            <Menu className="h-5 w-5" />
+          </button>
         </div>
       </div>
 
@@ -265,6 +271,80 @@ const Navbar = () => {
               </div>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Mobile menu */}
+      <div
+        className={`md:hidden absolute left-0 right-0 top-full z-40 border-b border-border bg-card/95 shadow-lg transition-all duration-200 ${
+          mobileMenuOpen ? "pointer-events-auto translate-y-0 opacity-100" : "pointer-events-none -translate-y-3 opacity-0"
+        }`}
+      >
+        <div className="container mx-auto px-6 py-4 space-y-3">
+          <div className="flex justify-between items-center">
+            <span className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Navigate</span>
+            <button
+              className="text-muted-foreground hover:text-foreground transition"
+              onClick={() => setMobileMenuOpen(false)}
+              aria-label="Close menu"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          <div className="flex flex-col gap-2 text-sm">
+            <a href="/shop" className="rounded-md px-2 py-2 hover:bg-muted/60" onClick={() => setMobileMenuOpen(false)}>
+              Shop
+            </a>
+            <a
+              href="/products/all"
+              className="rounded-md px-2 py-2 hover:bg-muted/60"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Products
+            </a>
+            <a
+              href="/collections"
+              className="rounded-md px-2 py-2 hover:bg-muted/60"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Collections
+            </a>
+            <a
+              href="/about"
+              className="rounded-md px-2 py-2 hover:bg-muted/60"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              About
+            </a>
+            <a
+              href="/contact"
+              className="rounded-md px-2 py-2 hover:bg-muted/60"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Contact
+            </a>
+            <a
+              href="/account"
+              className="rounded-md px-2 py-2 hover:bg-muted/60"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Shipping
+            </a>
+            <a
+              href="/profile"
+              className="rounded-md px-2 py-2 hover:bg-muted/60"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Profile
+            </a>
+            <Link
+              to={authUser ? "/account" : "/login"}
+              className="rounded-md px-2 py-2 text-left hover:bg-muted/60"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              {authUser ? "Manage account" : "Sign in"}
+            </Link>
+          </div>
         </div>
       </div>
     </nav>

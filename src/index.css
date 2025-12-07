@@ -97,7 +97,7 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground overflow-x-hidden;
     font-family: "Montserrat", system-ui, -apple-system, sans-serif;
   }
 }
