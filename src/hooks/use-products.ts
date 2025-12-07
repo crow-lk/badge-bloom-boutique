@@ -2,9 +2,8 @@ import coatImage from "@/assets/product-coat.jpg";
 import pantsImage from "@/assets/product-pants.jpg";
 import sweaterImage from "@/assets/product-sweater.jpg";
 import tshirtImage from "@/assets/product-tshirt.jpg";
+import { API_BASE_URL, getStoredToken } from "@/lib/auth";
 import { useQuery } from "@tanstack/react-query";
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "https://aaliyaa.crowdemo.com";
 
 const fallbackImages = [tshirtImage, pantsImage, coatImage, sweaterImage];
 
@@ -209,7 +208,10 @@ export const useProducts = () =>
   useQuery({
     queryKey: ["products"],
     queryFn: async () => {
-      const response = await fetch(`${API_BASE_URL}/api/products`);
+      const token = getStoredToken();
+      const response = await fetch(`${API_BASE_URL}/api/products`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
       if (!response.ok) {
         throw new Error("Failed to fetch products");
       }

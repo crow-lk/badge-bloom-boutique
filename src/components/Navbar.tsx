@@ -4,6 +4,8 @@ import { Search, ShoppingBag, User, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
+const NAV_HEIGHT = 72;
+
 const Navbar = () => {
   const [showSearch, setShowSearch] = useState(false);
   const [query, setQuery] = useState("");
@@ -46,60 +48,64 @@ const Navbar = () => {
   }, []);
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-background/80 backdrop-blur-md shadow-sm">
-      <div className="container mx-auto px-6 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3.5">
-            <img src={logo} alt="Aaliyaa logo" className="h-12 w-12 rounded-full object-cover" />
-            <span className="hidden text-sm font-light uppercase tracking-[0.35em] text-foreground sm:inline">
-              Aaliyaa
-            </span>
-          </div>
-          
-          <div className="hidden md:flex items-center gap-8">
-            <a href="/shop" className="text-sm font-light tracking-wide text-foreground hover:text-primary transition-colors">
-              Shop
-            </a>
-            <a href="/products/all" className="text-sm font-light tracking-wide text-foreground hover:text-primary transition-colors">
-              Products
-            </a>
-            <a href="/collections" className="text-sm font-light tracking-wide text-foreground hover:text-primary transition-colors">
-              Collections
-            </a>
-            <a href="#about" className="text-sm font-light tracking-wide text-foreground hover:text-primary transition-colors">
-              About
-            </a>
-            <a href="#contact" className="text-sm font-light tracking-wide text-foreground hover:text-primary transition-colors">
-              Contact
-            </a>
-          </div>
+    <nav
+      className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md shadow-sm relative"
+      style={{ height: `${NAV_HEIGHT}px` }}
+    >
+      <div className="container mx-auto flex h-full items-center px-6">
+        <div className="flex items-center gap-3.5">
+          <img src={logo} alt="Aaliyaa logo" className="h-12 w-12 rounded-full object-cover" />
+          <span className="hidden text-sm font-light uppercase tracking-[0.35em] text-foreground sm:inline">
+            Aaliyaa
+          </span>
+        </div>
 
-          <div className="flex items-center gap-5">
-            <button
-              className="text-foreground hover:text-primary transition-colors"
-              aria-label="Search"
-              onClick={() => setShowSearch(true)}
-            >
-              <Search className="h-5 w-5" />
-            </button>
-            <button className="text-foreground hover:text-primary transition-colors" aria-label="Account">
-              <User className="h-5 w-5" />
-            </button>
-            <button className="text-foreground hover:text-primary transition-colors" aria-label="Shopping bag">
-              <ShoppingBag className="w-5 h-5" />
-            </button>
-          </div>
+        <div className="flex-1 hidden items-center justify-center gap-8 md:flex">
+          <a href="/shop" className="text-sm font-light tracking-wide text-foreground hover:text-primary transition-colors">
+            Shop
+          </a>
+          <a href="/products/all" className="text-sm font-light tracking-wide text-foreground hover:text-primary transition-colors">
+            Products
+          </a>
+          <a href="/collections" className="text-sm font-light tracking-wide text-foreground hover:text-primary transition-colors">
+            Collections
+          </a>
+          <a href="#about" className="text-sm font-light tracking-wide text-foreground hover:text-primary transition-colors">
+            About
+          </a>
+          <a href="#contact" className="text-sm font-light tracking-wide text-foreground hover:text-primary transition-colors">
+            Contact
+          </a>
+        </div>
+
+        <div className="ml-auto flex items-center gap-5">
+          <button
+            className="text-foreground hover:text-primary transition-colors"
+            aria-label="Search"
+            onClick={() => setShowSearch(true)}
+          >
+            <Search className="h-5 w-5" />
+          </button>
+          <Link to="/login" className="text-foreground hover:text-primary transition-colors" aria-label="Account">
+            <User className="h-5 w-5" />
+          </Link>
+          <button className="text-foreground hover:text-primary transition-colors" aria-label="Shopping bag">
+            <ShoppingBag className="w-5 h-5" />
+          </button>
         </div>
       </div>
 
       <div
-        className={`fixed left-0 right-0 top-0 z-50 transition-transform duration-300 ${
-          showSearch ? "translate-y-0" : "-translate-y-full"
+        className={`absolute left-0 right-0 top-0 z-50 transition-all duration-300 ${
+          showSearch ? "translate-y-0 opacity-100 pointer-events-auto" : "-translate-y-full opacity-0 pointer-events-none"
         }`}
       >
-        <div className="border-b border-border bg-card/95 shadow-xl">
-          <div className="mx-auto w-full max-w-7xl px-6 sm:px-8">
-            <div className="flex items-center gap-4 py-6">
+        <div className="border border-border bg-card/95 shadow-xl">
+          <div
+            className="mx-auto w-full max-w-7xl px-6 sm:px-8"
+            style={{ height: `${NAV_HEIGHT}px` }}
+          >
+            <div className="flex h-full items-center gap-4">
               <Search className="h-5 w-5 text-muted-foreground" />
               <input
                 ref={inputRef}
