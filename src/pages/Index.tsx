@@ -62,17 +62,17 @@ const Index = () => {
               </div>
             </div>
 
-              <div className="grid gap-4 sm:grid-cols-3">
-                {featurePieces.map((item) => (
-                  <Card key={item.id} className="overflow-hidden border-border/70 bg-card/70 shadow-sm">
-                    <div className="aspect-[3/4] overflow-hidden bg-muted">
-                      <img
+            <div className="grid gap-4 justify-items-center sm:grid-cols-3 sm:justify-items-stretch">
+              {featurePieces.map((item) => (
+                <Card key={item.id} className="flex h-full w-full flex-col overflow-hidden border-border/70 bg-card/70 shadow-sm">
+                  <div className="aspect-[3/4] overflow-hidden bg-muted">
+                    <img
                       src={item.image}
                       alt={item.name}
                       className="h-full w-full object-cover transition duration-500 hover:scale-105"
                     />
                   </div>
-                  <CardContent className="space-y-1.5 p-4">
+                  <CardContent className="flex flex-1 flex-col items-center space-y-1.5 p-4 text-center sm:items-start sm:text-left">
                     <p className="text-sm uppercase tracking-[0.25em] text-muted-foreground">{item.collection_id}</p>
                     <p className="text-base font-medium text-foreground">{item.name}</p>
                     <p className="text-sm text-muted-foreground">{displayPrice(item)}</p>
@@ -126,28 +126,42 @@ const Index = () => {
             </p>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-3">
-            {[spotlight, secondaryLook, tertiaryLook].map((item, index) => (
-              <div key={`look-${item.id}`} className={`group relative overflow-hidden rounded-2xl border border-border/70 bg-card/70 shadow-sm ${index === 1 ? "md:translate-y-6" : ""}`}>
-                <img
-                  src={item.images?.[1] ?? item.image}
-                  alt={item.name}
-                  className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-background/30 to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-5 space-y-1.5">
-                  <p className="text-sm uppercase tracking-[0.22em] text-white/80">{item.collection_id}</p>
-                  <p className="text-lg font-medium text-white">{item.name}</p>
-                  <p className="text-sm text-white/80">{displayPrice(item)}</p>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {[spotlight, secondaryLook, tertiaryLook].map((item) => (
+              <Card
+                key={`look-${item.id}`}
+                className="overflow-hidden border-border/70 bg-card/80 shadow-sm"
+              >
+                <div className="relative">
+                  <div className="aspect-[4/5] w-full overflow-hidden">
+                    <img
+                      src={item.images?.[1] ?? item.image}
+                      alt={item.name}
+                      className="h-full w-full object-cover transition duration-700 hover:scale-105"
+                    />
+                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-background/30 to-transparent" />
+                  <div className="absolute inset-x-0 bottom-0 p-5 space-y-1.5">
+                    <p className="text-sm uppercase tracking-[0.22em] text-white/80 text-center sm:text-left">
+                      {item.collection_id}
+                    </p>
+                    <p className="text-lg font-medium text-white text-center sm:text-left">{item.name}</p>
+                    <p className="text-sm text-white/80 text-center sm:text-left">{displayPrice(item)}</p>
+                  </div>
                 </div>
-              </div>
+                <div className="p-4 text-center sm:text-left">
+                  <Button asChild variant="ghost" className="w-full sm:w-auto">
+                    <Link to={`/products/${item.slug}`}>View {item.name}</Link>
+                  </Button>
+                </div>
+              </Card>
             ))}
           </div>
         </div>
       </section>
 
       <section className="py-20 bg-background">
-        <div className="container mx-auto px-6 grid gap-10 lg:grid-cols-[1.1fr_0.9fr] items-start">
+        <div className="container mx-auto px-6 grid gap-10 items-start justify-items-center lg:grid-cols-[1.1fr_0.9fr] lg:justify-items-stretch">
           <div className="space-y-4">
             <p className="text-[11px] uppercase tracking-[0.32em] text-muted-foreground">Spotlight piece</p>
             <h2 className="text-3xl font-light tracking-tight md:text-4xl">{spotlight.name}</h2>
@@ -183,7 +197,7 @@ const Index = () => {
             </div>
           </div>
 
-          <div className="grid gap-4">
+          <div className="grid gap-4 w-full max-w-[720px] lg:max-w-none">
             <div className="overflow-hidden rounded-3xl border border-border/70 bg-muted">
               <img
                 src={spotlight.images?.[0] ?? spotlight.image}

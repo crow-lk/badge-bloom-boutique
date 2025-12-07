@@ -21,14 +21,14 @@ const About = () => {
           </div>
 
           <div className="grid gap-6 md:grid-cols-2">
-            <Card className="space-y-3 border-border/70 bg-card/80 p-6 shadow-sm">
+            <Card className="space-y-3 border-border/70 bg-card/80 p-6 shadow-sm text-center md:text-left">
               <h2 className="text-lg font-medium tracking-tight">Our philosophy</h2>
               <p className="text-sm text-muted-foreground leading-relaxed">
                 Fabric first, fit second, finish always. We refine each silhouette until it moves, breathes, and holds its
                 shape — no fuss, just pieces you reach for on repeat.
               </p>
             </Card>
-            <Card className="space-y-3 border-border/70 bg-card/80 p-6 shadow-sm">
+            <Card className="space-y-3 border-border/70 bg-card/80 p-6 shadow-sm text-center md:text-left">
               <h2 className="text-lg font-medium tracking-tight">Considered batches</h2>
               <p className="text-sm text-muted-foreground leading-relaxed">
                 We release limited batches to keep quality high and waste low. You get fresh staples without endless
@@ -38,7 +38,7 @@ const About = () => {
           </div>
 
           <div className="grid gap-6 md:grid-cols-[1.1fr_0.9fr] items-start">
-            <Card className="space-y-4 border-border/70 bg-card/80 p-6 shadow-sm">
+            <Card className="space-y-4 border-border/70 bg-card/80 p-6 shadow-sm text-center md:text-left">
               <div className="flex items-center gap-2">
                 <Badge variant="secondary">Heritage</Badge>
                 <p className="text-xs uppercase tracking-[0.26em] text-muted-foreground">Colombo studio</p>

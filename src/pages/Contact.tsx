@@ -24,8 +24,8 @@ const Contact = () => {
             </p>
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-            <Card className="space-y-4 border-border/70 bg-card/80 p-6 shadow-sm">
+          <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr] items-start">
+            <Card className="w-full max-w-xl space-y-4 border-border/70 bg-card/80 p-6 shadow-sm mx-auto lg:mx-0">
               <div className="space-y-1">
                 <h2 className="text-lg font-medium tracking-tight">Send us a note</h2>
                 <p className="text-sm text-muted-foreground">We&apos;ll get back to you as soon as possible.</p>
@@ -62,7 +62,7 @@ const Contact = () => {
               </form>
             </Card>
 
-            <Card className="space-y-4 border-border/70 bg-card/80 p-6 shadow-sm">
+            <Card className="w-full max-w-xl space-y-4 border-border/70 bg-card/80 p-6 shadow-sm mx-auto lg:mx-0">
               <h2 className="text-lg font-medium tracking-tight">Reach us directly</h2>
               <div className="space-y-3 text-sm text-muted-foreground">
                 <div className="flex items-start gap-3 rounded-lg border border-border/60 bg-background/60 p-3">
