@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { persistAuth, register as registerUser, socialLogin, type SocialProvider } from "@/lib/auth";
-import { ArrowRight, Lock, Mail, User } from "lucide-react";
+import { ArrowRight, Lock, Mail, Phone, User } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -14,6 +14,7 @@ const Register = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [phone, setPhone] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [socialProvider, setSocialProvider] = useState<SocialProvider | null>(null);
 
@@ -21,7 +22,7 @@ const Register = () => {
     event.preventDefault();
     setIsSubmitting(true);
     try {
-      const response = await registerUser(name, email, password);
+      const response = await registerUser(name, email, password, phone);
       persistAuth(response, true);
       toast.success(`Welcome, ${response.user?.name ?? response.user?.email ?? "you"}!`);
       navigate("/shop");
@@ -101,6 +102,23 @@ const Register = () => {
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               placeholder="you@example.com"
+              className="pl-10"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="phone">Mobile number</Label>
+          <div className="relative">
+            <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              id="phone"
+              type="tel"
+              required
+              autoComplete="tel"
+              value={phone}
+              onChange={(event) => setPhone(event.target.value)}
+              placeholder="+94 77 123 4567"
               className="pl-10"
             />
           </div>

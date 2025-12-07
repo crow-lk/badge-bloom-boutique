@@ -131,11 +131,11 @@ export const login = (email: string, password: string) =>
     data: { email, password },
   });
 
-export const register = (name: string, email: string, password: string) =>
+export const register = (name: string, email: string, password: string, phone?: string) =>
   apiRequest<AuthResponse>({
     path: "/api/auth/register",
     method: "POST",
-    data: { name, email, password },
+    data: { name, email, password, phone },
   });
 
 export const socialLogin = (provider: SocialProvider, accessToken: string) =>

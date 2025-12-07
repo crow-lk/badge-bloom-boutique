@@ -139,14 +139,28 @@ const Navbar = () => {
                     <p className="text-sm font-medium">{authUser.name ?? "Account"}</p>
                     <p className="text-xs text-muted-foreground truncate">{authUser.email ?? "Signed in"}</p>
                   </div>
-                  <Link
-                    to="/login"
-                    className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm transition hover:bg-muted/60"
-                    onClick={() => setAccountOpen(false)}
-                  >
-                    <Settings className="h-4 w-4 text-muted-foreground" />
-                    Manage account
-                  </Link>
+                  <div className="space-y-1">
+                    <p className="px-2 text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Profile</p>
+                    <Link
+                      to="/profile"
+                      className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm transition hover:bg-muted/60"
+                      onClick={() => setAccountOpen(false)}
+                    >
+                      <Settings className="h-4 w-4 text-muted-foreground" />
+                      Manage profile
+                    </Link>
+                  </div>
+                  <div className="space-y-1 pt-1">
+                    <p className="px-2 text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Shipping</p>
+                    <Link
+                      to="/account"
+                      className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm transition hover:bg-muted/60"
+                      onClick={() => setAccountOpen(false)}
+                    >
+                      <Settings className="h-4 w-4 text-muted-foreground" />
+                      Manage shipping
+                    </Link>
+                  </div>
                   <button
                     className="mt-1 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm text-destructive transition hover:bg-muted/60 disabled:opacity-50"
                     onClick={handleLogout}
