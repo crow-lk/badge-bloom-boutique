@@ -4,16 +4,14 @@ import ProductGrid from "@/components/ProductGrid";
 import Footer from "@/components/Footer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { fallbackProducts, useProducts, type Product } from "@/hooks/use-products";
-import { ArrowRight, Leaf, Package, ShieldCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Index = () => {
   const { data } = useProducts();
   const products: Product[] = data?.length ? data : fallbackProducts;
-  const featurePieces = products.slice(0, 3);
   const spotlight = products[0] ?? fallbackProducts[0];
   const secondaryLook = products[1] ?? fallbackProducts[1];
   const tertiaryLook = products[2] ?? fallbackProducts[2];
@@ -26,93 +24,6 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       <Hero />
-
-      <section className="py-20 bg-card/40">
-        <div className="container mx-auto px-6 space-y-12">
-          <div className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr] items-center">
-            <div className="space-y-4">
-              <p className="text-[11px] uppercase tracking-[0.35em] text-muted-foreground">Editorial</p>
-              <h2 className="text-3xl font-light tracking-tight md:text-4xl">
-                {spotlight.collection_id ?? "Studio Series"}
-              </h2>
-              <p className="text-base text-muted-foreground leading-relaxed">
-                {spotlight.description ??
-                  "Each drop is cut in small batches with natural fabrics, finished by hand, and tested for real movement."}
-              </p>
-              <div className="flex flex-wrap items-center gap-3">
-                <Badge variant="secondary" className="uppercase tracking-[0.2em]">
-                  {spotlightHighlights[0]}
-                </Badge>
-                <Badge variant="outline" className="uppercase tracking-[0.2em]">
-                  {spotlightHighlights[1] ?? "Hand finished"}
-                </Badge>
-                <Badge variant="secondary" className="uppercase tracking-[0.2em]">
-                  {spotlight.season ?? "Seasonless"}
-                </Badge>
-              </div>
-              <div className="flex gap-3 pt-2">
-                <Button asChild className="gap-2">
-                  <Link to={`/products/${spotlight.slug}`}>
-                    View {spotlight.name} <ArrowRight className="h-4 w-4" />
-                  </Link>
-                </Button>
-                <Button asChild variant="outline">
-                  <a href="#shop">View latest drop</a>
-                </Button>
-              </div>
-            </div>
-
-            <div className="grid gap-4 justify-items-center sm:grid-cols-3 sm:justify-items-stretch">
-              {featurePieces.map((item) => (
-                <Card key={item.id} className="flex h-full w-full flex-col overflow-hidden border-border/70 bg-card/70 shadow-sm">
-                  <div className="aspect-[3/4] overflow-hidden bg-muted">
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="h-full w-full object-cover transition duration-500 hover:scale-105"
-                    />
-                  </div>
-                  <CardContent className="flex flex-1 flex-col items-center space-y-1.5 p-4 text-center sm:items-start sm:text-left">
-                    <p className="text-sm uppercase tracking-[0.25em] text-muted-foreground">{item.collection_id}</p>
-                    <p className="text-base font-medium text-foreground">{item.name}</p>
-                    <p className="text-sm text-muted-foreground">{displayPrice(item)}</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid gap-6 rounded-2xl border border-border/70 bg-background/80 p-8 shadow-sm md:grid-cols-3">
-            {[
-              {
-                icon: ShieldCheck,
-                title: "Quality that lasts",
-                copy:
-                  spotlight.care_instructions ??
-                  "Staples crafted with reinforced seams and resilient fabrics so you can wear them on repeat.",
-              },
-              {
-                icon: Leaf,
-                title: "Low-impact sourcing",
-                copy: "Natural blends and mindful dye houses help keep our footprint light without compromising feel.",
-              },
-              {
-                icon: Package,
-                title: "Ready to gift",
-                copy: "Wrapped with care, shipped with tracking, and easy exchanges if the fit isn’t perfect.",
-              },
-            ].map(({ icon: Icon, title, copy }) => (
-              <div key={title} className="space-y-3 rounded-xl border border-border/70 bg-card/70 p-4">
-                <div className="flex items-center gap-2">
-                  <Icon className="h-5 w-5 text-primary" />
-                  <h3 className="text-lg font-medium tracking-tight">{title}</h3>
-                </div>
-                <p className="text-sm text-muted-foreground leading-relaxed">{copy}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       <ProductGrid />
 
