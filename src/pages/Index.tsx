@@ -20,6 +20,7 @@ const Index = () => {
   const spotlightHighlights = spotlight.highlights?.length
     ? spotlight.highlights
     : ["Limited availability", "Crafted with care"];
+  const displayPrice = (item: Product) => (item.inquiryOnly ? "Enquire for price" : item.priceLabel);
 
   return (
     <div className="min-h-screen bg-background">
@@ -61,11 +62,11 @@ const Index = () => {
               </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-3">
-              {featurePieces.map((item) => (
-                <Card key={item.id} className="overflow-hidden border-border/70 bg-card/70 shadow-sm">
-                  <div className="aspect-[3/4] overflow-hidden bg-muted">
-                    <img
+              <div className="grid gap-4 sm:grid-cols-3">
+                {featurePieces.map((item) => (
+                  <Card key={item.id} className="overflow-hidden border-border/70 bg-card/70 shadow-sm">
+                    <div className="aspect-[3/4] overflow-hidden bg-muted">
+                      <img
                       src={item.image}
                       alt={item.name}
                       className="h-full w-full object-cover transition duration-500 hover:scale-105"
@@ -74,7 +75,7 @@ const Index = () => {
                   <CardContent className="space-y-1.5 p-4">
                     <p className="text-sm uppercase tracking-[0.25em] text-muted-foreground">{item.collection_id}</p>
                     <p className="text-base font-medium text-foreground">{item.name}</p>
-                    <p className="text-sm text-muted-foreground">{item.priceLabel}</p>
+                    <p className="text-sm text-muted-foreground">{displayPrice(item)}</p>
                   </CardContent>
                 </Card>
               ))}
@@ -137,7 +138,7 @@ const Index = () => {
                 <div className="absolute bottom-0 left-0 right-0 p-5 space-y-1.5">
                   <p className="text-sm uppercase tracking-[0.22em] text-white/80">{item.collection_id}</p>
                   <p className="text-lg font-medium text-white">{item.name}</p>
-                  <p className="text-sm text-white/80">{item.priceLabel}</p>
+                  <p className="text-sm text-white/80">{displayPrice(item)}</p>
                 </div>
               </div>
             ))}
@@ -177,7 +178,7 @@ const Index = () => {
                 <Link to={`/products/${spotlight.slug}`}>View product</Link>
               </Button>
               <p className="text-sm text-muted-foreground">
-                Sizes: {spotlight.sizes?.join(", ") || "XS to XL"} · {spotlight.priceLabel}
+                Sizes: {spotlight.sizes?.join(", ") || "XS to XL"} · {displayPrice(spotlight)}
               </p>
             </div>
           </div>

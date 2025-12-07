@@ -4,65 +4,112 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { getStoredUser } from "@/lib/auth";
+import { fetchProfile, updateProfile, updateProfilePassword, type AuthUser } from "@/lib/auth";
 import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 type ProfileFormState = {
   name: string;
   email: string;
-  phone: string;
+  mobile: string;
 };
 
-const STORAGE_KEY = "aaliyaa.profile.draft";
+type PasswordFormState = {
+  current_password: string;
+  password: string;
+  password_confirmation: string;
+};
 
-const defaultState: ProfileFormState = {
+const defaultProfile: ProfileFormState = {
   name: "",
   email: "",
-  phone: "",
+  mobile: "",
+};
+
+const defaultPassword: PasswordFormState = {
+  current_password: "",
+  password: "",
+  password_confirmation: "",
 };
 
 const Profile = () => {
-  const [formState, setFormState] = useState<ProfileFormState>(defaultState);
-  const [saving, setSaving] = useState(false);
+  const [profileState, setProfileState] = useState<ProfileFormState>(defaultProfile);
+  const [passwordState, setPasswordState] = useState<PasswordFormState>(defaultPassword);
+  const [loading, setLoading] = useState(true);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    let next = { ...defaultState };
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        next = { ...next, ...(JSON.parse(saved) as Partial<ProfileFormState>) };
-      }
-    } catch {
-      // ignore bad saved values
-    }
-    const user = getStoredUser();
-    if (user) {
-      next = {
-        ...next,
-        name: next.name || (user.name as string) || "",
-        email: next.email || (user.email as string) || "",
-      };
-    }
-    setFormState(next);
-  }, []);
-
-  const handleChange = (field: keyof ProfileFormState) => (event: ChangeEvent<HTMLInputElement>) => {
-    const value = event.target.value;
-    setFormState((prev) => ({ ...prev, [field]: value }));
+  const hydrateProfile = (user: AuthUser | null) => {
+    if (!user) return;
+    setProfileState((prev) => ({
+      ...prev,
+      name: user.name ? String(user.name) : prev.name,
+      email: user.email ? String(user.email) : prev.email,
+      mobile: user.mobile ? String(user.mobile) : prev.mobile,
+    }));
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setSaving(true);
-    try {
-      if (typeof window !== "undefined") {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(formState));
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const user = await fetchProfile();
+        hydrateProfile(user);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unable to load profile.";
+        toast.error(message);
+      } finally {
+        setLoading(false);
       }
-      toast.success("Profile draft saved. Connect an API endpoint to persist this server-side.");
+    };
+    load();
+  }, []);
+
+  const handleProfileChange = (field: keyof ProfileFormState) => (event: ChangeEvent<HTMLInputElement>) => {
+    const value = event.target.value;
+    setProfileState((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handlePasswordChange = (field: keyof PasswordFormState) => (event: ChangeEvent<HTMLInputElement>) => {
+    const value = event.target.value;
+    setPasswordState((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleProfileSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setSavingProfile(true);
+    try {
+      const updated = await updateProfile({
+        name: profileState.name,
+        email: profileState.email,
+        mobile: profileState.mobile || undefined,
+      });
+      hydrateProfile(updated);
+      toast.success("Profile updated.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to update profile.";
+      toast.error(message);
     } finally {
-      setSaving(false);
+      setSavingProfile(false);
+    }
+  };
+
+  const handlePasswordSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (passwordState.password !== passwordState.password_confirmation) {
+      toast.error("New password and confirmation must match.");
+      return;
+    }
+    setSavingPassword(true);
+    try {
+      await updateProfilePassword(passwordState);
+      toast.success("Password updated.");
+      setPasswordState(defaultPassword);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to update password.";
+      toast.error(message);
+    } finally {
+      setSavingPassword(false);
     }
   };
 
@@ -79,27 +126,34 @@ const Profile = () => {
             </p>
           </div>
 
-          <Card className="border-border/70 bg-card/80 p-6 shadow-sm">
-            <form className="space-y-4" onSubmit={handleSubmit}>
+          <Card className="border-border/70 bg-card/80 p-6 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-medium tracking-tight">Profile</h2>
+                <p className="text-sm text-muted-foreground">Edit your name, email, and mobile number.</p>
+              </div>
+              {loading && <span className="text-xs text-muted-foreground">Loading…</span>}
+            </div>
+            <form className="space-y-4" onSubmit={handleProfileSubmit}>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="name">Full name</Label>
                   <Input
                     id="name"
-                    value={formState.name}
-                    onChange={handleChange("name")}
+                    value={profileState.name}
+                    onChange={handleProfileChange("name")}
                     placeholder="Aaliya Noor"
                     autoComplete="name"
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Mobile number</Label>
+                  <Label htmlFor="mobile">Mobile number</Label>
                   <Input
-                    id="phone"
+                    id="mobile"
                     type="tel"
-                    value={formState.phone}
-                    onChange={handleChange("phone")}
+                    value={profileState.mobile}
+                    onChange={handleProfileChange("mobile")}
                     placeholder="+94 77 123 4567"
                     autoComplete="tel"
                   />
@@ -111,8 +165,8 @@ const Profile = () => {
                 <Input
                   id="email"
                   type="email"
-                  value={formState.email}
-                  onChange={handleChange("email")}
+                  value={profileState.email}
+                  onChange={handleProfileChange("email")}
                   placeholder="you@example.com"
                   autoComplete="email"
                   required
@@ -120,11 +174,58 @@ const Profile = () => {
               </div>
 
               <div className="flex items-center justify-between gap-3 pt-2">
-                <p className="text-sm text-muted-foreground">
-                  These details are saved locally until a profile API is connected.
-                </p>
-                <Button type="submit" className="min-w-[140px]" disabled={saving}>
-                  {saving ? "Saving..." : "Save profile"}
+                <p className="text-sm text-muted-foreground">Changes save to your profile immediately.</p>
+                <Button type="submit" className="min-w-[140px]" disabled={savingProfile}>
+                  {savingProfile ? "Saving..." : "Save profile"}
+                </Button>
+              </div>
+            </form>
+          </Card>
+
+          <Card className="border-border/70 bg-card/80 p-6 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-medium tracking-tight">Password</h2>
+                <p className="text-sm text-muted-foreground">Update your password to keep your account secure.</p>
+              </div>
+            </div>
+            <form className="space-y-4" onSubmit={handlePasswordSubmit}>
+              <div className="space-y-2">
+                <Label htmlFor="current_password">Current password</Label>
+                <Input
+                  id="current_password"
+                  type="password"
+                  value={passwordState.current_password}
+                  onChange={handlePasswordChange("current_password")}
+                  required
+                />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="password">New password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={passwordState.password}
+                    onChange={handlePasswordChange("password")}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password_confirmation">Confirm new password</Label>
+                  <Input
+                    id="password_confirmation"
+                    type="password"
+                    value={passwordState.password_confirmation}
+                    onChange={handlePasswordChange("password_confirmation")}
+                    required
+                  />
+                </div>
+              </div>
+              <div className="flex items-center justify-between gap-3 pt-2">
+                <p className="text-sm text-muted-foreground">Use at least 8 characters with numbers or symbols.</p>
+                <Button type="submit" className="min-w-[160px]" disabled={savingPassword}>
+                  {savingPassword ? "Updating..." : "Update password"}
                 </Button>
               </div>
             </form>

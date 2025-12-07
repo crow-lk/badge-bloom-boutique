@@ -9,10 +9,13 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fallbackProducts, useProducts, type Product } from "@/hooks/use-products";
+import { getStoredToken } from "@/lib/auth";
+import { addCartItem } from "@/lib/cart";
 import { cn } from "@/lib/utils";
 import { ArrowLeft, ArrowRight, Check, Heart, ShieldCheck, Sparkles, Truck } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { toast } from "sonner";
 
 const displayValue = (value: string | number | null | undefined, fallback = "—") =>
   value === undefined || value === null || value === "" ? fallback : String(value);
@@ -20,6 +23,9 @@ const displayValue = (value: string | number | null | undefined, fallback = "—
 const ProductDetail = () => {
   const { slug } = useParams<{ slug: string }>();
   const { data, isLoading, isError } = useProducts();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [adding, setAdding] = useState(false);
 
   const products = useMemo(() => {
     if (data?.length) return data;
@@ -112,6 +118,45 @@ const ProductDetail = () => {
   const description = product.description ?? "Description coming soon.";
   const careInstructions = product.care_instructions ?? "Care instructions coming soon.";
   const materialDetails = product.material_composition ?? "Material details coming soon.";
+  const inquiryOnly = product.inquiryOnly;
+  const priceDisplay = inquiryOnly ? "Enquire for price" : product.priceLabel;
+  const mailtoLink = `mailto:info@aaliyaa.com?subject=Inquiry%20about%20${encodeURIComponent(product.name)}`;
+  const whatsappLink = `https://wa.me/94703363363?text=${encodeURIComponent(
+    `Hi Aaliyaa team, I'm interested in ${product.name}.`,
+  )}`;
+
+  const requireAuth = () => {
+    const token = getStoredToken();
+    if (token) return true;
+    const redirect = `/login?redirect=${encodeURIComponent(location.pathname)}`;
+    navigate(redirect);
+    toast.message("Please sign in to continue", { description: "We’ll bring you back to this page after login." });
+    return false;
+  };
+
+  const handleAddToBag = async () => {
+    if (inquiryOnly) return;
+    setAdding(true);
+    try {
+      await addCartItem(product.id, 1);
+      toast.success("Added to bag");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to add to bag.";
+      toast.error(message);
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const handleEnquire = () => {
+    if (!requireAuth()) return;
+    window.location.href = mailtoLink;
+  };
+
+  const handleWhatsApp = () => {
+    if (!requireAuth()) return;
+    window.open(whatsappLink, "_blank", "noopener");
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -247,18 +292,44 @@ const ProductDetail = () => {
               </div>
 
               <div className="flex flex-wrap items-center gap-4">
-                <span className="text-2xl font-light md:text-3xl">{product.priceLabel}</span>
+                <span className="text-2xl font-light md:text-3xl">{priceDisplay}</span>
                 <Badge variant="secondary">{brandLabel}</Badge>
+                {inquiryOnly && <Badge variant="outline">Inquiry only</Badge>}
               </div>
 
-              <div className="flex flex-col gap-2.5 sm:flex-row">
-                <Button className="flex-1 h-11 bg-primary text-primary-foreground text-sm shadow-md hover:bg-primary/90 md:h-12">
-                  Add to bag
-                </Button>
-                <Button variant="outline" size="icon" className="h-11 w-11 md:h-12 md:w-12">
-                  <Heart className="h-4 w-4" />
-                </Button>
-              </div>
+              {inquiryOnly ? (
+                <div className="flex flex-col gap-2.5 sm:flex-row">
+                  <Button
+                    className="flex-1 h-11 bg-primary text-primary-foreground text-sm shadow-md hover:bg-primary/90 md:h-12"
+                    onClick={handleEnquire}
+                  >
+                    Enquire
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1 h-11 text-sm md:h-12"
+                    onClick={handleWhatsApp}
+                  >
+                    Enquire on WhatsApp
+                  </Button>
+                  <Button variant="outline" size="icon" className="h-11 w-11 md:h-12 md:w-12">
+                    <Heart className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2.5 sm:flex-row">
+                  <Button
+                    className="flex-1 h-11 bg-primary text-primary-foreground text-sm shadow-md hover:bg-primary/90 md:h-12 disabled:opacity-60"
+                    onClick={handleAddToBag}
+                    disabled={adding}
+                  >
+                    {adding ? "Adding..." : "Add to bag"}
+                  </Button>
+                  <Button variant="outline" size="icon" className="h-11 w-11 md:h-12 md:w-12">
+                    <Heart className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
 
               <Separator />
 

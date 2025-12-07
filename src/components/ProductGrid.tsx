@@ -52,6 +52,7 @@ const ProductGrid = () => {
                   price={product.priceLabel}
                   sizes={product.sizes}
                   slug={product.slug}
+                  inquiryOnly={product.inquiryOnly}
                 />
               ))}
         </div>

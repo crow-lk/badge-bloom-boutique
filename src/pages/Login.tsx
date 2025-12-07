@@ -5,13 +5,15 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { login, persistAuth, socialLogin, type SocialProvider } from "@/lib/auth";
+import { mergeGuestCart } from "@/lib/cart";
 import { ArrowRight, Eye, EyeOff, Lock, Mail } from "lucide-react";
-import { FormEvent, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { FormEvent, useMemo, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(true);
@@ -19,15 +21,21 @@ const Login = () => {
   const [socialProvider, setSocialProvider] = useState<SocialProvider | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
+  const redirectTo = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    return params.get("redirect") ?? "/shop";
+  }, [location.search]);
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
     try {
       const response = await login(email, password);
       persistAuth(response, remember);
+      await mergeGuestCart();
       const name = response.user?.name ?? response.user?.email ?? "your account";
       toast.success(`Signed in as ${name}`);
-      navigate("/shop");
+      navigate(redirectTo);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unable to sign in right now.";
       toast.error(message);
@@ -51,8 +59,9 @@ const Login = () => {
     try {
       const response = await socialLogin(provider, accessToken);
       persistAuth(response, remember);
+      await mergeGuestCart();
       toast.success(`Signed in via ${provider}`);
-      navigate("/shop");
+      navigate(redirectTo);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unable to sign in with social login.";
       toast.error(message);

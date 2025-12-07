@@ -5,12 +5,14 @@ interface ProductCardProps {
   image: string;
   name: string;
   price: string;
+  inquiryOnly?: boolean;
   sizes?: string[];
   slug?: string;
 }
 
-const ProductCard = ({ image, name, price, sizes, slug }: ProductCardProps) => {
+const ProductCard = ({ image, name, price, sizes, slug, inquiryOnly }: ProductCardProps) => {
   const sizeLabel = sizes?.length ? sizes.join(" · ") : "Sizes available";
+  const priceText = inquiryOnly ? "Enquire for price" : price;
 
   const card = (
     <Card className="group relative h-full overflow-hidden border-0 bg-card transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
@@ -29,7 +31,7 @@ const ProductCard = ({ image, name, price, sizes, slug }: ProductCardProps) => {
       <div className="p-6">
         <h3 className="mb-2 text-lg font-light tracking-wide text-foreground">{name}</h3>
         <div className="space-y-1">
-          <p className="text-sm font-light text-muted-foreground">{price}</p>
+          <p className="text-sm font-light text-muted-foreground">{priceText}</p>
           {/* <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Sizes: {sizeLabel}</p> */}
         </div>
       </div>

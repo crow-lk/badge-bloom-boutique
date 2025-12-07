@@ -4,6 +4,7 @@ export type AuthUser = {
   id?: number | string;
   name?: string;
   email?: string;
+  mobile?: string;
   [key: string]: unknown;
 };
 
@@ -157,4 +158,31 @@ export const logout = () =>
     path: "/api/auth/logout",
     method: "POST",
     auth: true,
+  });
+
+export const fetchProfile = () =>
+  apiRequest<AuthUser>({
+    path: "/api/profile",
+    method: "GET",
+    auth: true,
+  });
+
+export const updateProfile = (data: { name: string; email: string; mobile?: string }) =>
+  apiRequest<AuthUser>({
+    path: "/api/profile",
+    method: "PUT",
+    auth: true,
+    data,
+  });
+
+export const updateProfilePassword = (data: {
+  current_password: string;
+  password: string;
+  password_confirmation: string;
+}) =>
+  apiRequest<{ message?: string }>({
+    path: "/api/profile/password",
+    method: "PUT",
+    auth: true,
+    data,
   });
