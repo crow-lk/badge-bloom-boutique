@@ -1,14 +1,20 @@
 import logo from "@/assets/logo.jpeg";
 import { fallbackProducts, useProducts } from "@/hooks/use-products";
-import { Search, ShoppingBag, User, X } from "lucide-react";
+import { clearStoredAuth, getStoredToken, getStoredUser, logout, type AuthUser } from "@/lib/auth";
+import { LogOut, Search, Settings, ShoppingBag, User, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 const NAV_HEIGHT = 72;
 
 const Navbar = () => {
+  const navigate = useNavigate();
   const [showSearch, setShowSearch] = useState(false);
   const [query, setQuery] = useState("");
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   const { data, isLoading } = useProducts();
@@ -46,6 +52,31 @@ const Navbar = () => {
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
   }, []);
+
+  useEffect(() => {
+    const token = getStoredToken();
+    const user = getStoredUser();
+    if (token && user) {
+      setAuthUser(user);
+    }
+  }, []);
+
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    try {
+      await logout();
+    } catch {
+      // Even if the API call fails, clear local state to avoid trapping users.
+    } finally {
+      clearStoredAuth();
+      setAuthUser(null);
+      toast.success("Signed out");
+      navigate("/login");
+      setIsLoggingOut(false);
+      setAccountOpen(false);
+    }
+  };
 
   return (
     <nav
@@ -86,9 +117,68 @@ const Navbar = () => {
           >
             <Search className="h-5 w-5" />
           </button>
-          <Link to="/login" className="text-foreground hover:text-primary transition-colors" aria-label="Account">
-            <User className="h-5 w-5" />
-          </Link>
+          <div
+            className="relative"
+            onMouseEnter={() => setAccountOpen(true)}
+            onMouseLeave={() => setAccountOpen(false)}
+          >
+            <button
+              className="flex items-center gap-2 text-foreground hover:text-primary transition-colors"
+              aria-label="Account"
+            >
+              <User className="h-5 w-5" />
+            </button>
+            <div
+              className={`absolute right-0 top-full w-56 rounded-xl border border-border bg-card/95 p-3 shadow-xl transition-all duration-200 ${
+                accountOpen ? "pointer-events-auto translate-y-0 opacity-100" : "pointer-events-none -translate-y-2 opacity-0"
+              }`}
+            >
+              {authUser ? (
+                <>
+                  <div className="mb-3 space-y-0.5 px-2">
+                    <p className="text-sm font-medium">{authUser.name ?? "Account"}</p>
+                    <p className="text-xs text-muted-foreground truncate">{authUser.email ?? "Signed in"}</p>
+                  </div>
+                  <Link
+                    to="/login"
+                    className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm transition hover:bg-muted/60"
+                    onClick={() => setAccountOpen(false)}
+                  >
+                    <Settings className="h-4 w-4 text-muted-foreground" />
+                    Manage account
+                  </Link>
+                  <button
+                    className="mt-1 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm text-destructive transition hover:bg-muted/60 disabled:opacity-50"
+                    onClick={handleLogout}
+                    disabled={isLoggingOut}
+                  >
+                    <LogOut className={isLoggingOut ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
+                    {isLoggingOut ? "Signing out..." : "Sign out"}
+                  </button>
+                </>
+              ) : (
+                <div className="space-y-1">
+                  <p className="px-2 text-xs uppercase tracking-[0.24em] text-muted-foreground">Account</p>
+                  <Link
+                    to="/login"
+                    className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm transition hover:bg-muted/60"
+                    onClick={() => setAccountOpen(false)}
+                  >
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    Sign in
+                  </Link>
+                  <Link
+                    to="/register"
+                    className="flex items-center gap-2 rounded-lg px-2 py-2 text-sm transition hover:bg-muted/60"
+                    onClick={() => setAccountOpen(false)}
+                  >
+                    <Settings className="h-4 w-4 text-muted-foreground" />
+                    Create account
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
           <button className="text-foreground hover:text-primary transition-colors" aria-label="Shopping bag">
             <ShoppingBag className="w-5 h-5" />
           </button>
