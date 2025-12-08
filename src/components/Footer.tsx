@@ -6,7 +6,7 @@ const Footer = () => {
           <div>
             <h3 className="text-lg font-light tracking-wider mb-4 text-foreground">Aaliyaa</h3>
             <p className="text-sm text-muted-foreground font-light">
-              Timeless pieces, crafted with intention. Reach out anytime — we&apos;re here to help style your next look.
+              Timeless Elegance, Curated for You. Reach out anytime- We&apos;re here to help style your next look.
             </p>
           </div>
 
