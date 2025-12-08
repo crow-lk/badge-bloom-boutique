@@ -11,12 +11,12 @@ const About = () => {
         <div className="container mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 space-y-12">
           <div className="space-y-3 text-center">
             <Badge variant="outline" className="rounded-full px-4 py-1 text-xs uppercase tracking-[0.28em]">
-              About Aaliyaa
+              ABOUT AALIYAA
             </Badge>
-            <h1 className="text-3xl font-light tracking-tight md:text-4xl">Made to live in</h1>
+            <h1 className="text-3xl font-light tracking-tight md:text-4xl">Designed for timeless elegance</h1>
             <p className="mx-auto max-w-3xl text-sm text-muted-foreground md:text-base">
-              Everyday pieces that feel effortless, look refined, and stay in your rotation. Each drop is produced in
-              considered quantities so we can focus on the details that matter.
+              Everyday pieces that feel refined, effortless, and beautiful. Each drop is released in considered quantities
+              so we can focus on the details that matter.
             </p>
           </div>
 
@@ -24,15 +24,15 @@ const About = () => {
             <Card className="space-y-3 border-border/70 bg-card/80 p-6 shadow-sm text-center md:text-left">
               <h2 className="text-lg font-medium tracking-tight">Our philosophy</h2>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Fabric first, fit second, finish always. We refine each silhouette until it moves, breathes, and holds its
-                shape — no fuss, just pieces you reach for on repeat.
+                Fabric, fit, and finish are at the heart of every AALIYAA piece. Each silhouette is thoughtfully chosen
+                for the way it moves, breathes, and holds its shape — no fuss, just pieces you reach for again and again.
               </p>
             </Card>
             <Card className="space-y-3 border-border/70 bg-card/80 p-6 shadow-sm text-center md:text-left">
               <h2 className="text-lg font-medium tracking-tight">Considered batches</h2>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                We release limited batches to keep quality high and waste low. You get fresh staples without endless
-                seasons or overproduction.
+                We release limited batches to keep quality high and waste low. You get fresh, timeless staples without
+                endless seasons or overproduction.
               </p>
             </Card>
           </div>
@@ -41,24 +41,26 @@ const About = () => {
             <Card className="space-y-4 border-border/70 bg-card/80 p-6 shadow-sm text-center md:text-left">
               <div className="flex items-center gap-2">
                 <Badge variant="secondary">Heritage</Badge>
-                <p className="text-xs uppercase tracking-[0.26em] text-muted-foreground">Colombo studio</p>
+                <p className="text-xs uppercase tracking-[0.26em] text-muted-foreground">AALIYAA Studio</p>
               </div>
-              <h3 className="text-2xl font-light tracking-tight">Rooted in Sri Lanka, worn everywhere.</h3>
+              <h3 className="text-2xl font-light tracking-tight">Inspired in Sri Lanka, loved everywhere.</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                From our Colombo studio we partner with trusted makers to cut, stitch, and finish each garment. Frequent
-                fit sessions keep every drop comfortable and reliable from day one.
+                "At AALIYAA, our design philosophy is rooted in timeless elegance and modern femininity. Each collection
+                is thoughtfully developed in Sri Lanka and produced through trusted global partners who share our
+                commitment to quality, craftsmanship, and consistency."
               </p>
               <div className="grid gap-3 sm:grid-cols-2">
                 <Card className="border-border/60 bg-background/60 p-4 shadow-none">
                   <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Materials</p>
                   <p className="mt-1 text-sm text-foreground">
-                    Natural fiber blends chosen for breathability, drape, and resilience.
+                    "High-quality fabrics selected for comfort, drape, and longevity."
                   </p>
                 </Card>
                 <Card className="border-border/60 bg-background/60 p-4 shadow-none">
                   <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Finishing</p>
                   <p className="mt-1 text-sm text-foreground">
-                    Hand-finished seams and trims for comfort and longevity in every wear.
+                    "Every piece reflects careful attention to detail, from refined trims to thoughtfully considered
+                    construction."
                   </p>
                 </Card>
               </div>
