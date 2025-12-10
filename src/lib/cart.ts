@@ -83,3 +83,59 @@ export const mergeGuestCart = async () => {
   clearCartSessionId();
   return response.json();
 };
+
+const attachSessionQuery = (url: string, sessionId: string | null) => {
+  if (!sessionId) return url;
+  const separator = url.includes("?") ? "&" : "?";
+  return `${url}${separator}session_id=${encodeURIComponent(sessionId)}`;
+};
+
+export const fetchCart = async () => {
+  const { token, sessionId } = buildCartContext();
+  const response = await fetch(attachSessionQuery(`${API_BASE_URL}/api/cart`, sessionId), {
+    method: "GET",
+    headers: cartHeaders(token ?? undefined),
+  });
+  if (!response.ok) {
+    await parseError(response);
+  }
+  return response.json();
+};
+
+export const updateCartItem = async (cartItemId: number | string, quantity: number) => {
+  const { token, sessionId } = buildCartContext();
+  const response = await fetch(`${API_BASE_URL}/api/cart/items/${cartItemId}`, {
+    method: "PUT",
+    headers: cartHeaders(token ?? undefined),
+    body: JSON.stringify({ quantity, session_id: sessionId ?? undefined }),
+  });
+  if (!response.ok) {
+    await parseError(response);
+  }
+  return response.json();
+};
+
+export const removeCartItem = async (cartItemId: number | string) => {
+  const { token, sessionId } = buildCartContext();
+  const response = await fetch(attachSessionQuery(`${API_BASE_URL}/api/cart/items/${cartItemId}`, sessionId), {
+    method: "DELETE",
+    headers: cartHeaders(token ?? undefined),
+  });
+  if (!response.ok) {
+    await parseError(response);
+  }
+  return response.json();
+};
+
+export const clearCart = async () => {
+  const { token, sessionId } = buildCartContext();
+  const response = await fetch(`${API_BASE_URL}/api/cart/clear`, {
+    method: "POST",
+    headers: cartHeaders(token ?? undefined),
+    body: JSON.stringify({ session_id: sessionId ?? undefined }),
+  });
+  if (!response.ok) {
+    await parseError(response);
+  }
+  return response.json();
+};

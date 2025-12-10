@@ -2,6 +2,7 @@ import logo from "@/assets/logo.jpeg";
 import { fallbackProducts, useProducts } from "@/hooks/use-products";
 import { clearStoredAuth, getStoredToken, getStoredUser, logout, type AuthUser } from "@/lib/auth";
 import { LogOut, Menu, Search, Settings, ShoppingBag, User, X } from "lucide-react";
+import { formatCartCurrency, useCart } from "@/hooks/use-cart";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -16,6 +17,7 @@ const Navbar = () => {
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [cartPreviewOpen, setCartPreviewOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   const { data, isLoading } = useProducts();
@@ -37,6 +39,13 @@ const Navbar = () => {
       })
       .slice(0, 6);
   }, [products, query]);
+
+  const { data: cart, isFetching: isCartFetching } = useCart();
+  const cartItems = cart?.items ?? [];
+  const cartItemCount = cart?.itemCount ?? 0;
+  const previewItems = cartItems.slice(0, 3);
+  const hasMoreItems = cartItemCount > previewItems.length;
+  const cartTotalLabel = formatCartCurrency(cart?.total, cart?.currency);
 
   useEffect(() => {
     if (showSearch) {
@@ -192,9 +201,64 @@ const Navbar = () => {
               )}
             </div>
           </div>
-          <button className="text-foreground hover:text-primary transition-colors" aria-label="Shopping bag">
-            <ShoppingBag className="w-5 h-5" />
-          </button>
+          <div
+            className="relative"
+            onMouseEnter={() => setCartPreviewOpen(true)}
+            onMouseLeave={() => setCartPreviewOpen(false)}
+          >
+            <Link
+              to="/cart"
+              aria-label="Open shopping bag"
+              className="group relative flex items-center justify-center rounded-full p-1 text-foreground transition-colors hover:text-primary"
+            >
+              <ShoppingBag className="h-5 w-5" />
+              {cartItemCount > 0 && (
+                <span className="absolute -top-2 right-0 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground shadow-lg">
+                  {cartItemCount}
+                </span>
+              )}
+            </Link>
+
+            <div
+              className={`absolute right-0 top-full z-50 mt-2 w-72 rounded-2xl border border-border bg-card/95 p-4 text-sm text-foreground shadow-xl transition-all duration-200 ${
+                cartPreviewOpen
+                  ? "pointer-events-auto translate-y-0 opacity-100"
+                  : "pointer-events-none -translate-y-1 opacity-0"
+              }`}
+            >
+              <div className="flex items-center justify-between text-xs uppercase tracking-[0.25em] text-muted-foreground">
+                <span>Bag summary</span>
+                <span>{cartTotalLabel}</span>
+              </div>
+              <div className="mt-3 space-y-3">
+                {isCartFetching ? (
+                  <p className="text-sm text-muted-foreground">Updating bag preview…</p>
+                ) : previewItems.length ? (
+                  previewItems.map((item) => (
+                    <div key={`${item.id}`} className="flex items-start justify-between gap-3">
+                      <div className="flex flex-col">
+                        <p className="text-sm font-medium text-foreground truncate">{item.name}</p>
+                        <p className="text-xs text-muted-foreground">Qty {item.quantity}</p>
+                      </div>
+                      {item.price != null && (
+                        <p className="text-xs text-muted-foreground">
+                          {formatCartCurrency(item.price, cart?.currency ?? "LKR")}
+                        </p>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">Your bag is empty.</p>
+                )}
+              </div>
+              {hasMoreItems && (
+                <p className="mt-3 text-xs text-muted-foreground">
+                  +{cartItemCount - previewItems.length} more item
+                  {cartItemCount - previewItems.length === 1 ? "" : "s"} in your bag.
+                </p>
+              )}
+            </div>
+          </div>
           <button
             className="text-foreground hover:text-primary transition-colors md:hidden"
             aria-label="Menu"

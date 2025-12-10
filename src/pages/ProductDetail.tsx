@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { ArrowLeft, ArrowRight, Check, Heart, ShieldCheck, Sparkles, Truck } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 const displayValue = (value: string | number | null | undefined, fallback = "—") =>
@@ -25,6 +26,7 @@ const ProductDetail = () => {
   const { data, isLoading, isError } = useProducts();
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const [adding, setAdding] = useState(false);
 
   const products = useMemo(() => {
@@ -139,6 +141,7 @@ const ProductDetail = () => {
     setAdding(true);
     try {
       await addCartItem(product.id, 1);
+      await queryClient.invalidateQueries({ queryKey: ["cart"] });
       toast.success("Added to bag");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unable to add to bag.";

@@ -21,7 +21,7 @@ const Hero = () => {
           />
         </div>
         <p className="text-lg md:text-xl font-light text-muted-foreground mb-8 max-w-2xl mx-auto">
-          Timeless pieces crafted for the modern wardrobe
+          Elegance Redefined
         </p>
         <Button 
           size="lg" 
