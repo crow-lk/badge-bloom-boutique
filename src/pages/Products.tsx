@@ -5,11 +5,40 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { fallbackCollections as fallbackCollectionData, useCollections } from "@/hooks/use-collections";
+import { fallbackCategories, useCategories } from "@/hooks/use-categories";
 import { fallbackProducts, useProducts, type Product } from "@/hooks/use-products";
 import { useMemo, useState } from "react";
 
 const displayValue = (value: string | number | null | undefined, fallback = "—") =>
   value === undefined || value === null || value === "" ? fallback : String(value);
+
+const normalizeRawKey = (value?: string | number | null) => {
+  if (value === undefined || value === null) return "";
+  return String(value).trim().toLowerCase();
+};
+
+const normalizeSlugKey = (value?: string | number | null) => {
+  const raw = normalizeRawKey(value);
+  if (!raw) return "";
+  return raw
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)+/g, "");
+};
+
+const buildMatchKeys = (...values: (string | number | null | undefined)[]) => {
+  const keys = values
+    .flatMap((value) => [normalizeRawKey(value), normalizeSlugKey(value)])
+    .filter((key): key is string => Boolean(key));
+  return Array.from(new Set(keys));
+};
+
+const matchValueAgainstKeys = (value: string | number | null | undefined, keys: string[]) => {
+  if (!keys.length) return false;
+  const valueKeys = buildMatchKeys(value);
+  if (!valueKeys.length) return false;
+  return keys.some((key) => valueKeys.includes(key));
+};
 
 type FilterState = {
   collection: string;
@@ -18,8 +47,19 @@ type FilterState = {
   status: string;
 };
 
+type SelectOption = {
+  label: string;
+  value: string;
+};
+
+type FilterOption = SelectOption & {
+  matchKeys: string[];
+};
+
 const Products = () => {
   const { data, isLoading, isError } = useProducts();
+  const { data: collectionsData } = useCollections();
+  const { data: categoriesData } = useCategories();
 
   const products: Product[] = useMemo(() => {
     if (data?.length) return data;
@@ -34,29 +74,74 @@ const Products = () => {
     status: "",
   });
 
-  const collections = useMemo(
-    () => Array.from(new Set(products.map((p) => displayValue(p.collection_id, "Collection")))),
-    [products],
-  );
-  const categories = useMemo(
-    () => Array.from(new Set(products.map((p) => displayValue(p.category_id, "Category")))),
-    [products],
-  );
-  const sizes = useMemo(() => Array.from(new Set(products.flatMap((p) => p.sizes ?? []))), [products]);
-  const statuses = useMemo(
-    () => Array.from(new Set(products.map((p) => displayValue(p.status, "active")).map((s) => s.toString()))),
-    [products],
-  );
+  const collectionOptions = useMemo<FilterOption[]>(() => {
+    const source = collectionsData?.length ? collectionsData : fallbackCollectionData;
+    const map = new Map<string, FilterOption>();
+    source.forEach((collection, index) => {
+      const label = collection.name ?? `Collection ${index + 1}`;
+      const fallbackValue = collection.id ?? collection.slug ?? `${label}-${index}`;
+      const value = String(fallbackValue);
+      if (!map.has(value)) {
+        map.set(value, {
+          label,
+          value,
+          matchKeys: buildMatchKeys(collection.id, collection.slug, collection.name, label),
+        });
+      }
+    });
+    return Array.from(map.values());
+  }, [collectionsData]);
+
+  const categoryOptions = useMemo<FilterOption[]>(() => {
+    const source = categoriesData?.length ? categoriesData : fallbackCategories;
+    const map = new Map<string, FilterOption>();
+    source.forEach((category, index) => {
+      const label = category.name ?? `Category ${index + 1}`;
+      const fallbackValue = category.id ?? category.slug ?? `${label}-${index}`;
+      const value = String(fallbackValue);
+      if (!map.has(value)) {
+        map.set(value, {
+          label,
+          value,
+          matchKeys: buildMatchKeys(category.id, category.slug, category.name, label),
+        });
+      }
+    });
+    return Array.from(map.values());
+  }, [categoriesData]);
+
+  const sizeOptions = useMemo<SelectOption[]>(() => {
+    const uniqueSizes = Array.from(new Set(products.flatMap((p) => p.sizes ?? []).filter(Boolean)));
+    return uniqueSizes.map((size) => ({ label: size, value: size }));
+  }, [products]);
+
+  const statusOptions = useMemo<SelectOption[]>(() => {
+    const uniqueStatuses = Array.from(
+      new Set(
+        products
+          .map((p) => displayValue(p.status, "active"))
+          .map((status) => status.toString().trim())
+          .filter(Boolean),
+      ),
+    );
+    return uniqueStatuses.map((status) => ({ label: status, value: status }));
+  }, [products]);
+
+  const selectedCollectionOption = collectionOptions.find((option) => option.value === filters.collection);
+  const selectedCategoryOption = categoryOptions.find((option) => option.value === filters.category);
 
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
-      const matchesCollection = !filters.collection || displayValue(product.collection_id, "Collection") === filters.collection;
-      const matchesCategory = !filters.category || displayValue(product.category_id, "Category") === filters.category;
+      const matchesCollection =
+        !selectedCollectionOption ||
+        matchValueAgainstKeys(product.collection_id, selectedCollectionOption.matchKeys);
+      const matchesCategory =
+        !selectedCategoryOption || matchValueAgainstKeys(product.category_id, selectedCategoryOption.matchKeys);
       const matchesStatus = !filters.status || displayValue(product.status, "active") === filters.status;
       const matchesSize = !filters.size || (product.sizes ?? []).includes(filters.size);
       return matchesCollection && matchesCategory && matchesStatus && matchesSize;
     });
-  }, [filters, products]);
+  }, [filters.size, filters.status, products, selectedCategoryOption, selectedCollectionOption]);
 
   const resetFilters = () =>
     setFilters({
@@ -93,25 +178,25 @@ const Products = () => {
                 label="Collection"
                 value={filters.collection}
                 onChange={(value) => setFilters((prev) => ({ ...prev, collection: value }))}
-                options={collections}
+                options={collectionOptions}
               />
               <Select
                 label="Category"
                 value={filters.category}
                 onChange={(value) => setFilters((prev) => ({ ...prev, category: value }))}
-                options={categories}
+                options={categoryOptions}
               />
               <Select
                 label="Size"
                 value={filters.size}
                 onChange={(value) => setFilters((prev) => ({ ...prev, size: value }))}
-                options={sizes}
+                options={sizeOptions}
               />
               <Select
                 label="Status"
                 value={filters.status}
                 onChange={(value) => setFilters((prev) => ({ ...prev, status: value }))}
-                options={statuses}
+                options={statusOptions}
               />
             </div>
             <div className="mt-4 flex items-center justify-between">
@@ -167,11 +252,13 @@ const Select = ({
   value,
   onChange,
   options,
+  placeholder = "All",
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
-  options: string[];
+  options: SelectOption[];
+  placeholder?: string;
 }) => (
   <label className="flex flex-col gap-1 text-sm text-foreground">
     <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">{label}</span>
@@ -180,10 +267,10 @@ const Select = ({
       onChange={(e) => onChange(e.target.value)}
       className="h-10 rounded-md border border-border bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
     >
-      <option value="">All</option>
+      <option value="">{placeholder}</option>
       {options.map((option) => (
-        <option key={`${label}-${option}`} value={option}>
-          {option}
+        <option key={`${label}-${option.value}`} value={option.value}>
+          {option.label}
         </option>
       ))}
     </select>
