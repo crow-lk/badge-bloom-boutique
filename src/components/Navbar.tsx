@@ -1,5 +1,5 @@
 import logo from "@/assets/logo.jpeg";
-import { fallbackProducts, useProducts } from "@/hooks/use-products";
+import { fallbackProducts, getProductDisplayPrice, useProducts } from "@/hooks/use-products";
 import { clearStoredAuth, getStoredToken, getStoredUser, logout, type AuthUser } from "@/lib/auth";
 import { LogOut, Menu, Search, Settings, ShoppingBag, User, X } from "lucide-react";
 import { formatCartCurrency, useCart } from "@/hooks/use-cart";
@@ -319,7 +319,7 @@ const Navbar = () => {
                           <div className="flex-1">
                             <p className="text-sm font-medium text-foreground">{product.name}</p>
                             <p className="text-xs text-muted-foreground">
-                              {product.priceLabel} • {product.collection_id ?? "Collection"} • {product.category_id ?? "Category"}
+                              {getProductDisplayPrice(product)} • {product.collection_id ?? "Collection"} • {product.category_id ?? "Category"}
                             </p>
                           </div>
                           <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">

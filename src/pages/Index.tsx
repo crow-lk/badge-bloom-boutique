@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { fallbackProducts, useProducts, type Product } from "@/hooks/use-products";
+import { fallbackProducts, getProductDisplayPrice, useProducts, type Product } from "@/hooks/use-products";
 import { Link } from "react-router-dom";
 
 const Index = () => {
@@ -18,7 +18,7 @@ const Index = () => {
   const spotlightHighlights = spotlight.highlights?.length
     ? spotlight.highlights
     : ["Limited availability", "Crafted with care"];
-  const displayPrice = (item: Product) => (item.inquiryOnly ? "Enquire for price" : item.priceLabel);
+  const displayPrice = (item: Product) => getProductDisplayPrice(item);
 
   return (
     <div className="min-h-screen bg-background">

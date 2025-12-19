@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fallbackCollections as fallbackCollectionData, useCollections } from "@/hooks/use-collections";
 import { fallbackCategories, useCategories } from "@/hooks/use-categories";
-import { fallbackProducts, useProducts, type Product } from "@/hooks/use-products";
+import { fallbackProducts, getProductDisplayPrice, useProducts, type Product } from "@/hooks/use-products";
 import { useMemo, useState } from "react";
 
 const displayValue = (value: string | number | null | undefined, fallback = "—") =>
@@ -228,7 +228,7 @@ const Products = () => {
                   key={product.slug}
                   image={product.image}
                   name={product.name}
-                  price={product.priceLabel}
+                  price={getProductDisplayPrice(product)}
                   sizes={product.sizes}
                   slug={product.slug}
                 />

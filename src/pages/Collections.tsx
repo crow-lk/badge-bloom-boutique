@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fallbackCollections, useCollection, useCollections, type Collection } from "@/hooks/use-collections";
-import { fallbackProducts, useProducts, type Product } from "@/hooks/use-products";
+import { fallbackProducts, getProductDisplayPrice, useProducts, type Product } from "@/hooks/use-products";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
@@ -119,7 +119,7 @@ const Collections = () => {
               name: product.name,
               image: product.images?.[0] ?? product.image,
               slug: product.slug,
-              priceLabel: product.inquiryOnly ? "Enquire for price" : product.priceLabel,
+              priceLabel: getProductDisplayPrice(product),
             }))
           : collection.previewProducts;
 

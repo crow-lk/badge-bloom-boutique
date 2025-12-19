@@ -1,6 +1,6 @@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { fallbackProducts, useProducts } from "@/hooks/use-products";
+import { fallbackProducts, useProducts, getProductDisplayPrice } from "@/hooks/use-products";
 import ProductCard from "./ProductCard";
 
 const loadingSlots = Array.from({ length: 4 });
@@ -49,10 +49,9 @@ const ProductGrid = () => {
                   key={product.slug}
                   image={product.image}
                   name={product.name}
-                  price={product.priceLabel}
+                  price={getProductDisplayPrice(product)}
                   sizes={product.sizes}
                   slug={product.slug}
-                  inquiryOnly={product.inquiryOnly}
                 />
               ))}
         </div>

@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { fallbackProducts, useProducts, type Product } from "@/hooks/use-products";
+import { fallbackProducts, getProductDisplayPrice, useProducts, type Product } from "@/hooks/use-products";
 import { getStoredToken } from "@/lib/auth";
 import { addCartItem } from "@/lib/cart";
 import { cn } from "@/lib/utils";
@@ -121,7 +121,7 @@ const ProductDetail = () => {
   const careInstructions = product.care_instructions ?? "Care instructions coming soon.";
   const materialDetails = product.material_composition ?? "Material details coming soon.";
   const inquiryOnly = product.inquiryOnly;
-  const priceDisplay = inquiryOnly ? "Enquire for price" : product.priceLabel;
+  const priceDisplay = getProductDisplayPrice(product);
   const mailtoLink = `mailto:info@aaliyaa.com?subject=Inquiry%20about%20${encodeURIComponent(product.name)}`;
   const whatsappLink = `https://wa.me/94703363363?text=${encodeURIComponent(
     `Hi Aaliyaa team, I'm interested in ${product.name}.`,
@@ -453,7 +453,7 @@ const ProductDetail = () => {
                       <Badge variant="outline">{displayValue(item.status)}</Badge>
                     </div>
                     <h4 className="text-base font-light tracking-wide md:text-lg">{item.name}</h4>
-                    <p className="text-sm text-muted-foreground">{item.priceLabel}</p>
+                    <p className="text-sm text-muted-foreground">{getProductDisplayPrice(item)}</p>
                   </div>
                 </Link>
               ))}

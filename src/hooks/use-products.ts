@@ -27,6 +27,7 @@ export type ApiProduct = {
   highlights?: string[] | null;
   images?: string[] | null;
   inquiry_only?: boolean;
+  show_price_inquiry_mode?: boolean;
 };
 
 export type Product = {
@@ -40,6 +41,7 @@ export type Product = {
   sizes: string[];
   status: string;
   inquiryOnly: boolean;
+  showPriceInquiryMode: boolean;
   sku_prefix?: string | null;
   brand_id?: string | number | null;
   category_id?: string | number | null;
@@ -51,6 +53,15 @@ export type Product = {
   hs_code?: string | null;
   default_tax_id?: string | number | null;
   highlights: string[];
+};
+
+export const PRICE_HIDDEN_LABEL = "Enquire for price";
+
+export const getProductDisplayPrice = (
+  product: Pick<Product, "priceLabel" | "inquiryOnly" | "showPriceInquiryMode">,
+) => {
+  if (!product.inquiryOnly) return product.priceLabel;
+  return product.showPriceInquiryMode ? product.priceLabel : PRICE_HIDDEN_LABEL;
 };
 
 const formatPrice = (value?: number | null) =>
@@ -87,18 +98,21 @@ const normalizeProduct = (product: ApiProduct, index: number): Product => {
   const gallery = product.images?.length ? product.images : buildGallery(index);
   const sizes = product.sizes?.length ? product.sizes : ["XS", "S", "M", "L", "XL"];
   const inquiryOnly = Boolean(product.inquiry_only);
+  const showPriceInquiryMode =
+    product.show_price_inquiry_mode == null ? !inquiryOnly : Boolean(product.show_price_inquiry_mode);
 
   return {
     id: product.id,
     name: product.name ?? `Product ${product.id}`,
     slug: product.slug ?? `product-${product.id}`,
     price: product.selling_price ?? null,
-    priceLabel: inquiryOnly ? "Enquire for price" : formatPrice(product.selling_price),
+    priceLabel: formatPrice(product.selling_price),
     image: gallery[0],
     images: gallery,
     sizes,
     status: product.status ?? "active",
     inquiryOnly,
+    showPriceInquiryMode,
     sku_prefix: product.sku_prefix,
     brand_id: product.brand_id,
     category_id: product.category_id,
@@ -125,6 +139,7 @@ export const fallbackProducts: Product[] = [
     sizes: ["XS", "S", "M", "L", "XL"],
     status: "active",
     inquiryOnly: false,
+    showPriceInquiryMode: true,
     sku_prefix: "AL-TSH",
     brand_id: "Aaliyaa Atelier",
     category_id: "Tops",
@@ -149,6 +164,7 @@ export const fallbackProducts: Product[] = [
     sizes: ["2", "4", "6", "8", "10"],
     status: "active",
     inquiryOnly: false,
+    showPriceInquiryMode: true,
     sku_prefix: "AL-LIN",
     brand_id: "Aaliyaa Atelier",
     category_id: "Bottoms",
@@ -173,6 +189,7 @@ export const fallbackProducts: Product[] = [
     sizes: ["XS", "S", "M", "L"],
     status: "active",
     inquiryOnly: true,
+    showPriceInquiryMode: false,
     sku_prefix: "AL-WLC",
     brand_id: "Aaliyaa Atelier",
     category_id: "Outerwear",
@@ -197,6 +214,7 @@ export const fallbackProducts: Product[] = [
     sizes: ["XS", "S", "M", "L", "XL"],
     status: "preorder",
     inquiryOnly: false,
+    showPriceInquiryMode: true,
     sku_prefix: "AL-KNT",
     brand_id: "Aaliyaa Atelier",
     category_id: "Knitwear",
