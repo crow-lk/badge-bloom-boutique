@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
-import { fallbackCollections, useCollection, useCollections, type Collection } from "@/hooks/use-collections";
+import { useCollection, useCollections, type Collection } from "@/hooks/use-collections";
 import { fallbackProducts, getProductDisplayPrice, useProducts, type Product } from "@/hooks/use-products";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -33,11 +33,7 @@ const Collections = () => {
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | number | null>(null);
   const [selectedCollection, setSelectedCollection] = useState<Collection | null>(null);
 
-  const collections = useMemo(() => {
-    if (data?.length) return data;
-    if (!isLoading) return fallbackCollections;
-    return [];
-  }, [data, isLoading]);
+  const collections = useMemo(() => (data?.length ? data : []), [data]);
 
   const products: Product[] = useMemo(() => {
     if (productData?.length) return productData;
@@ -228,12 +224,16 @@ const Collections = () => {
                 </Card>
               ))}
             </div>
-          ) : (
+          ) : hydratedCollections.length ? (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {hydratedCollections.map(({ collection }) => (
                 <CollectionCard key={collection.slug} collection={collection} onSelect={() => handleSelectCollection(collection)} />
               ))}
             </div>
+          ) : (
+            <Card className="border border-dashed border-border/70 bg-card/60 p-6 text-center text-sm text-muted-foreground">
+              No collections are available yet. Please check back once the catalog updates.
+            </Card>
           )}
         </div>
       </main>

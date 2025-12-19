@@ -5,7 +5,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { fallbackCollections as fallbackCollectionData, useCollections } from "@/hooks/use-collections";
+import { useCollections } from "@/hooks/use-collections";
 import { fallbackCategories, useCategories } from "@/hooks/use-categories";
 import { fallbackProducts, getProductDisplayPrice, useProducts, type Product } from "@/hooks/use-products";
 import { useMemo, useState } from "react";
@@ -75,7 +75,7 @@ const Products = () => {
   });
 
   const collectionOptions = useMemo<FilterOption[]>(() => {
-    const source = collectionsData?.length ? collectionsData : fallbackCollectionData;
+    const source = collectionsData ?? [];
     const map = new Map<string, FilterOption>();
     source.forEach((collection, index) => {
       const label = collection.name ?? `Collection ${index + 1}`;
