@@ -96,11 +96,8 @@ const parseError = async (response: Response) => {
 const resolveCheckoutContext = () => {
   const token = getStoredToken();
   const existingSession = getCartSessionId();
-  const sessionId = existingSession ?? ensureCartSessionId();
-  if (token) {
-    return { token, sessionId };
-  }
-  return { token: null, sessionId };
+  const sessionId = existingSession ?? (token ? null : ensureCartSessionId());
+  return { token, sessionId };
 };
 
 const authHeaders = (token?: string | null) => {
