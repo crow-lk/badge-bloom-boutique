@@ -4,13 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { formatCartCurrency, useCart } from "@/hooks/use-cart";
 import { fallbackProducts, Product, useProducts } from "@/hooks/use-products";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { updateCartItem, removeCartItem } from "@/lib/cart";
+import { getStoredToken } from "@/lib/auth";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 
 const Cart = () => {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [updatingId, setUpdatingId] = useState<number | string | null>(null);
   const [removingId, setRemovingId] = useState<number | string | null>(null);
 
@@ -50,6 +53,19 @@ const Cart = () => {
     cartEntries.length > 0 ? (derivedTotal > 0 ? derivedTotal : serverTotal) : 0;
   const totalLabel = formatCartCurrency(showTotal, cart?.currency ?? "LKR");
   const totalItemCount = cartEntries.reduce((sum, item) => sum + item.quantity, 0);
+
+  const handleCheckoutClick = () => {
+    if (!totalItemCount) return;
+    const token = getStoredToken();
+    if (!token) {
+      toast.message("Sign in to checkout", {
+        description: "Log in and we'll bring you back here to finish your order.",
+      });
+      navigate(`/login?redirect=${encodeURIComponent("/checkout")}`);
+      return;
+    }
+    navigate("/checkout");
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -210,7 +226,7 @@ const Cart = () => {
                 <Link to="/shop" className="text-xs uppercase tracking-[0.25em] text-muted-foreground transition hover:text-foreground">
                   Continue shopping
                 </Link>
-                <Button className="px-6" disabled={!totalItemCount}>
+                <Button className="px-6" type="button" onClick={handleCheckoutClick} disabled={!totalItemCount}>
                   Proceed to checkout
                 </Button>
               </div>

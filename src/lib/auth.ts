@@ -139,11 +139,16 @@ export const register = (name: string, email: string, password: string, phone?: 
     data: { name, email, password, phone },
   });
 
-export const socialLogin = (provider: SocialProvider, accessToken: string) =>
+const SOCIAL_TOKEN_FIELDS: Record<SocialProvider, "access_token" | "id_token"> = {
+  google: "id_token",
+  facebook: "access_token",
+};
+
+export const socialLogin = (provider: SocialProvider, token: string) =>
   apiRequest<AuthResponse>({
     path: `/api/auth/social/${provider}`,
     method: "POST",
-    data: { access_token: accessToken },
+    data: { [SOCIAL_TOKEN_FIELDS[provider]]: token },
   });
 
 export const fetchCurrentUser = () =>

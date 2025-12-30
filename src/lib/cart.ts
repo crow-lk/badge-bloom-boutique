@@ -2,21 +2,59 @@ import { API_BASE_URL, getStoredToken } from "@/lib/auth";
 
 const CART_SESSION_KEY = "aaliyaa.cart.session_id";
 
-const parseError = async (response: Response) => {
-  let message = `Request failed with status ${response.status}`;
+const extractCartErrorMessage = async (response: Response) => {
   try {
     const payload = await response.json();
-    if (payload?.message) message = String(payload.message);
-    else if (payload?.error) message = String(payload.error);
-    else if (payload?.errors) {
+    if (payload?.message) return String(payload.message);
+    if (payload?.error) return String(payload.error);
+    if (payload?.errors) {
       const errors = payload.errors as Record<string, unknown>;
       const first = Object.values(errors).flat().find(Boolean);
-      if (first) message = String(first);
+      if (first) return String(first);
     }
   } catch {
     // ignore parse errors
   }
+  return null;
+};
+
+const parseError = async (response: Response) => {
+  const message = (await extractCartErrorMessage(response)) ?? `Request failed with status ${response.status}`;
   throw new Error(message);
+};
+
+const shouldRetryWithSession = (message: string | null) =>
+  typeof message === "string" && message.toLowerCase().includes("session_id");
+
+type CartRequestContext = { token: string | null; sessionId: string | null };
+type CartRequestFactory = (context: CartRequestContext) => Promise<Response>;
+
+const buildCartContext = (): CartRequestContext => {
+  const token = getStoredToken();
+  const existingSession = getCartSessionId();
+  const sessionId = existingSession ?? ensureCartSessionId();
+  return { token, sessionId };
+};
+
+const requestWithSession = async <T>(makeRequest: CartRequestFactory): Promise<T> => {
+  const performRequest = async (context: CartRequestContext, allowRetry: boolean): Promise<T> => {
+    const response = await makeRequest(context);
+    if (response.ok) {
+      try {
+        return (await response.json()) as T;
+      } catch {
+        return {} as T;
+      }
+    }
+    const message = await extractCartErrorMessage(response);
+    if (allowRetry && shouldRetryWithSession(message)) {
+      clearCartSessionId();
+      return performRequest(buildCartContext(), false);
+    }
+    throw new Error(message ?? `Request failed with status ${response.status}`);
+  };
+
+  return performRequest(buildCartContext(), true);
 };
 
 export const getCartSessionId = () => {
@@ -49,30 +87,20 @@ const cartHeaders = (token?: string) => {
   return headers;
 };
 
-const buildCartContext = () => {
-  const token = getStoredToken();
-  if (token) return { token, sessionId: null as string | null };
-  return { token: null, sessionId: ensureCartSessionId() };
-};
-
-export const addCartItem = async (productVariantId: number | string, quantity: number) => {
-  const { token, sessionId } = buildCartContext();
-  const response = await fetch(`${API_BASE_URL}/api/cart/items`, {
-    method: "POST",
-    headers: cartHeaders(token ?? undefined),
-    body: JSON.stringify({ product_variant_id: productVariantId, quantity, session_id: sessionId ?? undefined }),
-  });
-  if (!response.ok) {
-    await parseError(response);
-  }
-  return response.json();
-};
+export const addCartItem = async (productVariantId: number | string, quantity: number) =>
+  requestWithSession(({ token, sessionId }) =>
+    fetch(attachSessionQuery(`${API_BASE_URL}/api/cart/items`, sessionId), {
+      method: "POST",
+      headers: cartHeaders(token ?? undefined),
+      body: JSON.stringify({ product_variant_id: productVariantId, quantity, session_id: sessionId ?? undefined }),
+    }),
+  );
 
 export const mergeGuestCart = async () => {
   const sessionId = getCartSessionId();
   const token = getStoredToken();
   if (!sessionId || !token) return;
-  const response = await fetch(`${API_BASE_URL}/api/cart/merge`, {
+  const response = await fetch(attachSessionQuery(`${API_BASE_URL}/api/cart/merge`, sessionId), {
     method: "POST",
     headers: cartHeaders(token),
     body: JSON.stringify({ session_id: sessionId }),
@@ -80,7 +108,6 @@ export const mergeGuestCart = async () => {
   if (!response.ok) {
     await parseError(response);
   }
-  clearCartSessionId();
   return response.json();
 };
 
@@ -90,52 +117,36 @@ const attachSessionQuery = (url: string, sessionId: string | null) => {
   return `${url}${separator}session_id=${encodeURIComponent(sessionId)}`;
 };
 
-export const fetchCart = async () => {
-  const { token, sessionId } = buildCartContext();
-  const response = await fetch(attachSessionQuery(`${API_BASE_URL}/api/cart`, sessionId), {
-    method: "GET",
-    headers: cartHeaders(token ?? undefined),
-  });
-  if (!response.ok) {
-    await parseError(response);
-  }
-  return response.json();
-};
+export const fetchCart = async () =>
+  requestWithSession(({ token, sessionId }) =>
+    fetch(attachSessionQuery(`${API_BASE_URL}/api/cart`, sessionId), {
+      method: "GET",
+      headers: cartHeaders(token ?? undefined),
+    }),
+  );
 
-export const updateCartItem = async (cartItemId: number | string, quantity: number) => {
-  const { token, sessionId } = buildCartContext();
-  const response = await fetch(`${API_BASE_URL}/api/cart/items/${cartItemId}`, {
-    method: "PUT",
-    headers: cartHeaders(token ?? undefined),
-    body: JSON.stringify({ quantity, session_id: sessionId ?? undefined }),
-  });
-  if (!response.ok) {
-    await parseError(response);
-  }
-  return response.json();
-};
+export const updateCartItem = async (cartItemId: number | string, quantity: number) =>
+  requestWithSession(({ token, sessionId }) =>
+    fetch(attachSessionQuery(`${API_BASE_URL}/api/cart/items/${cartItemId}`, sessionId), {
+      method: "PUT",
+      headers: cartHeaders(token ?? undefined),
+      body: JSON.stringify({ quantity, session_id: sessionId ?? undefined }),
+    }),
+  );
 
-export const removeCartItem = async (cartItemId: number | string) => {
-  const { token, sessionId } = buildCartContext();
-  const response = await fetch(attachSessionQuery(`${API_BASE_URL}/api/cart/items/${cartItemId}`, sessionId), {
-    method: "DELETE",
-    headers: cartHeaders(token ?? undefined),
-  });
-  if (!response.ok) {
-    await parseError(response);
-  }
-  return response.json();
-};
+export const removeCartItem = async (cartItemId: number | string) =>
+  requestWithSession(({ token, sessionId }) =>
+    fetch(attachSessionQuery(`${API_BASE_URL}/api/cart/items/${cartItemId}`, sessionId), {
+      method: "DELETE",
+      headers: cartHeaders(token ?? undefined),
+    }),
+  );
 
-export const clearCart = async () => {
-  const { token, sessionId } = buildCartContext();
-  const response = await fetch(`${API_BASE_URL}/api/cart/clear`, {
-    method: "POST",
-    headers: cartHeaders(token ?? undefined),
-    body: JSON.stringify({ session_id: sessionId ?? undefined }),
-  });
-  if (!response.ok) {
-    await parseError(response);
-  }
-  return response.json();
-};
+export const clearCart = async () =>
+  requestWithSession(({ token, sessionId }) =>
+    fetch(attachSessionQuery(`${API_BASE_URL}/api/cart/clear`, sessionId), {
+      method: "POST",
+      headers: cartHeaders(token ?? undefined),
+      body: JSON.stringify({ session_id: sessionId ?? undefined }),
+    }),
+  );

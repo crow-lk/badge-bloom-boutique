@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { login, persistAuth, socialLogin, type SocialProvider } from "@/lib/auth";
 import { mergeGuestCart } from "@/lib/cart";
+import { requestFacebookAccessToken, requestGoogleIdToken } from "@/lib/social";
 import { ArrowRight, Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { FormEvent, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -32,7 +33,11 @@ const Login = () => {
     try {
       const response = await login(email, password);
       persistAuth(response, remember);
-      await mergeGuestCart();
+      try {
+        await mergeGuestCart();
+      } catch (error) {
+        console.warn("Unable to merge guest cart after login:", error);
+      }
       const name = response.user?.name ?? response.user?.email ?? "your account";
       toast.success(`Signed in as ${name}`);
       navigate(redirectTo);
@@ -45,21 +50,16 @@ const Login = () => {
   };
 
   const handleSocialLogin = async (provider: SocialProvider) => {
-    const accessToken =
-      window
-        .prompt(`Paste the ${provider} access token from your provider SDK to continue:`)
-        ?.trim() ?? "";
-
-    if (!accessToken) {
-      toast.error("A provider access token is required to continue.");
-      return;
-    }
-
     setSocialProvider(provider);
     try {
-      const response = await socialLogin(provider, accessToken);
+      const token = provider === "google" ? await requestGoogleIdToken() : await requestFacebookAccessToken();
+      const response = await socialLogin(provider, token);
       persistAuth(response, remember);
-      await mergeGuestCart();
+      try {
+        await mergeGuestCart();
+      } catch (error) {
+        console.warn("Unable to merge guest cart after social login:", error);
+      }
       toast.success(`Signed in via ${provider}`);
       navigate(redirectTo);
     } catch (error) {
