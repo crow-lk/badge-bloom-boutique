@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { persistAuth, socialLogin, type SocialProvider } from "@/lib/auth";
-import { requestFacebookAccessToken, requestGoogleIdToken } from "@/lib/social";
+import { requestFacebookAccessToken, requestGoogleAccessToken } from "@/lib/social";
 import { Mail } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -23,7 +23,7 @@ const ForgotPassword = () => {
   const handleSocialLogin = async (provider: SocialProvider) => {
     setSocialProvider(provider);
     try {
-      const token = provider === "google" ? await requestGoogleIdToken() : await requestFacebookAccessToken();
+      const token = provider === "google" ? await requestGoogleAccessToken() : await requestFacebookAccessToken();
       const response = await socialLogin(provider, token);
       persistAuth(response, true);
       toast.success(`Signed in via ${provider}`);

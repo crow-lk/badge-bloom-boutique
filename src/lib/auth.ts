@@ -140,7 +140,7 @@ export const register = (name: string, email: string, password: string, phone?: 
   });
 
 const SOCIAL_TOKEN_FIELDS: Record<SocialProvider, "access_token" | "id_token"> = {
-  google: "id_token",
+  google: "access_token",
   facebook: "access_token",
 };
 

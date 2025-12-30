@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { login, persistAuth, socialLogin, type SocialProvider } from "@/lib/auth";
 import { mergeGuestCart } from "@/lib/cart";
-import { requestFacebookAccessToken, requestGoogleIdToken } from "@/lib/social";
+import { requestFacebookAccessToken, requestGoogleAccessToken } from "@/lib/social";
 import { ArrowRight, Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { FormEvent, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -52,7 +52,7 @@ const Login = () => {
   const handleSocialLogin = async (provider: SocialProvider) => {
     setSocialProvider(provider);
     try {
-      const token = provider === "google" ? await requestGoogleIdToken() : await requestFacebookAccessToken();
+      const token = provider === "google" ? await requestGoogleAccessToken() : await requestFacebookAccessToken();
       const response = await socialLogin(provider, token);
       persistAuth(response, remember);
       try {

@@ -170,7 +170,7 @@ const waitForGlobal = <T>(getter: () => T | undefined, errorMessage: string, tim
 const ensureGoogleClient = async () => {
   ensureBrowserEnv();
   ensureScriptTag(GOOGLE_SCRIPT_SRC);
-  return waitForGlobal(() => (window.google?.accounts?.id ? window.google : undefined), "Google SDK failed to load.");
+  return waitForGlobal(() => (window.google?.accounts ? window.google : undefined), "Google SDK failed to load.");
 };
 
 const ensureFacebookClient = async () => {
@@ -204,57 +204,60 @@ const getFacebookSdk = () => {
   return facebookInitPromise;
 };
 
-export const requestGoogleIdToken = async (): Promise<string> => {
+export const requestGoogleAccessToken = async (): Promise<string> => {
   const google = await ensureGoogleClient();
   const clientId = await resolveGoogleClientId();
 
   return new Promise<string>((resolve, reject) => {
-    let settled = false;
+    const oauth2 = google.accounts?.oauth2;
+    if (!oauth2?.initTokenClient) {
+      reject(new Error("Google OAuth SDK is unavailable. Please try again later."));
+      return;
+    }
 
-    const cleanup = () => {
-      if (google.accounts?.id?.cancel) {
-        try {
-          google.accounts.id.cancel();
-        } catch {
-          // Ignore failures while cleaning up the prompt.
-        }
-      }
-    };
+    let settled = false;
 
     const finishWithError = (message: string) => {
       if (settled) return;
       settled = true;
-      cleanup();
       reject(new Error(message));
     };
 
     const finishWithToken = (token: string) => {
       if (settled) return;
       settled = true;
-      cleanup();
       resolve(token);
     };
 
-    google.accounts.id.initialize({
+    const tokenClient = oauth2.initTokenClient({
       client_id: clientId,
+      scope: "openid email profile",
+      prompt: "consent",
       callback: (response) => {
-        const credential = response?.credential;
-        if (credential) {
-          finishWithToken(credential);
-        } else {
-          finishWithError("Google sign-in did not return a token. Please try again.");
+        if (response?.error) {
+          finishWithError(response.error_description ?? response.error);
+          return;
         }
+        const token = response?.access_token;
+        if (!token) {
+          finishWithError("Google sign-in did not return an access token. Please try again.");
+          return;
+        }
+        finishWithToken(token);
       },
-      cancel_on_tap_outside: true,
-      ux_mode: "popup",
+      error_callback: (error) => {
+        const message = error?.error_description ?? error?.error ?? "Google sign-in was cancelled.";
+        finishWithError(message);
+      },
     });
 
-    google.accounts.id.prompt((notification) => {
-      if (settled) return;
-      if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-        finishWithError("Google sign-in was closed before completion.");
-      }
-    });
+    try {
+      tokenClient.requestAccessToken();
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unable to start Google sign-in. Please try again.";
+      finishWithError(message);
+    }
   });
 };
 
