@@ -40,6 +40,36 @@ declare global {
         function renderButton(parent: HTMLElement, options?: Record<string, unknown>): void;
         function cancel(): void;
       }
+
+      namespace oauth2 {
+        type TokenCallback = (token: TokenResponse) => void;
+
+        interface TokenResponse {
+          access_token?: string;
+          expires_in?: number;
+          error?: string;
+          error_description?: string;
+          error_uri?: string;
+        }
+
+        interface TokenClientConfig {
+          client_id: string;
+          scope: string;
+          callback: TokenCallback;
+          prompt?: string;
+          state?: string;
+          ux_mode?: "popup" | "redirect";
+          login_hint?: string;
+          hosted_domain?: string;
+          error_callback?: TokenCallback;
+        }
+
+        interface TokenClient {
+          requestAccessToken(options?: { prompt?: string }): void;
+        }
+
+        function initTokenClient(config: TokenClientConfig): TokenClient;
+      }
     }
   }
 

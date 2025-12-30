@@ -32,7 +32,7 @@ type CartRequestFactory = (context: CartRequestContext) => Promise<Response>;
 const buildCartContext = (): CartRequestContext => {
   const token = getStoredToken();
   const existingSession = getCartSessionId();
-  const sessionId = existingSession ?? ensureCartSessionId();
+  const sessionId = existingSession ?? (token ? null : ensureCartSessionId());
   return { token, sessionId };
 };
 
@@ -108,7 +108,9 @@ export const mergeGuestCart = async () => {
   if (!response.ok) {
     await parseError(response);
   }
-  return response.json();
+  const payload = await response.json().catch(() => ({}));
+  clearCartSessionId();
+  return payload;
 };
 
 const attachSessionQuery = (url: string, sessionId: string | null) => {
