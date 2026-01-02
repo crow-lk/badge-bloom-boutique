@@ -167,31 +167,4 @@ All colors MUST be HSL.
     animation: logo-float 6s ease-in-out infinite;
   }
 
-  @keyframes snowfall {
-    0% {
-      transform: translate3d(0, -20vh, 0) rotate(0deg);
-      opacity: 0;
-    }
-    10% {
-      opacity: 1;
-    }
-    100% {
-      transform: translate3d(0, 120vh, 0) rotate(360deg);
-      opacity: 0.85;
-    }
-  }
-
-  .snowflake {
-    position: absolute;
-    top: -10%;
-    display: block;
-    border-radius: 9999px;
-    background: hsla(0, 0%, 100%, 0.95);
-    box-shadow: 0 0 8px hsla(0, 0%, 100%, 0.6);
-    filter: blur(0.1px);
-    animation-name: snowfall;
-    animation-timing-function: linear;
-    animation-iteration-count: infinite;
-    mix-blend-mode: screen;
-  }
 }
