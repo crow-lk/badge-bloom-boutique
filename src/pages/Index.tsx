@@ -72,51 +72,44 @@ const Index = () => {
       </section>
 
       <section className="py-20 bg-background">
-        <div className="container mx-auto px-6 grid gap-10 items-start justify-items-center lg:grid-cols-[1.1fr_0.9fr] lg:justify-items-stretch">
-          <div className="space-y-4">
-            <p className="text-[11px] uppercase tracking-[0.32em] text-muted-foreground">Spotlight piece</p>
-            <h2 className="text-3xl font-light tracking-tight md:text-4xl">{spotlight.name}</h2>
-            <p className="text-muted-foreground">{spotlight.description}</p>
-            <div className="flex flex-wrap gap-2">
-              {spotlightHighlights.map((item) => (
-                <Badge key={item} variant="outline" className="rounded-full">
-                  {item}
-                </Badge>
-              ))}
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Card className="border-border/70 bg-card/70 p-4 shadow-sm">
-                <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Fabric & composition</p>
-                <p className="mt-1 text-sm text-foreground">
-                  {spotlight.material_composition ?? "Natural fiber blend chosen for drape and breathability."}
+        <div className="container mx-auto px-6 grid gap-10 items-stretch lg:grid-cols-[1.05fr_0.95fr]">
+          <div className="w-full flex flex-col gap-8 lg:order-2">
+            <div className="space-y-4">
+              <p className="text-[11px] uppercase tracking-[0.32em] text-muted-foreground">Spotlight piece</p>
+              <h2 className="text-3xl font-light tracking-tight md:text-4xl">{spotlight.name}</h2>
+              <p className="text-muted-foreground">{spotlight.description}</p>
+              <div className="flex flex-wrap gap-2">
+                {spotlightHighlights.map((item) => (
+                  <Badge key={item} variant="outline" className="rounded-full">
+                    {item}
+                  </Badge>
+                ))}
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Card className="border-border/70 bg-card/70 p-4 shadow-sm">
+                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Fabric & composition</p>
+                  <p className="mt-1 text-sm text-foreground">
+                    {spotlight.material_composition ?? "Natural fiber blend chosen for drape and breathability."}
+                  </p>
+                </Card>
+                <Card className="border-border/70 bg-card/70 p-4 shadow-sm">
+                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Care</p>
+                  <p className="mt-1 text-sm text-foreground">
+                    {spotlight.care_instructions ?? "Gentle cycle or hand wash. Lay flat to dry to preserve shape."}
+                  </p>
+                </Card>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <Button asChild>
+                  <Link to={`/products/${spotlight.slug}`}>View product</Link>
+                </Button>
+                <p className="text-sm text-muted-foreground">
+                  Sizes: {spotlight.sizes?.join(", ") || "XS to XL"} · {displayPrice(spotlight)}
                 </p>
-              </Card>
-              <Card className="border-border/70 bg-card/70 p-4 shadow-sm">
-                <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Care</p>
-                <p className="mt-1 text-sm text-foreground">
-                  {spotlight.care_instructions ?? "Gentle cycle or hand wash. Lay flat to dry to preserve shape."}
-                </p>
-              </Card>
+              </div>
             </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <Button asChild>
-                <Link to={`/products/${spotlight.slug}`}>View product</Link>
-              </Button>
-              <p className="text-sm text-muted-foreground">
-                Sizes: {spotlight.sizes?.join(", ") || "XS to XL"} · {displayPrice(spotlight)}
-              </p>
-            </div>
-          </div>
 
-          <div className="grid gap-4 w-full max-w-[720px] lg:max-w-none">
-            <div className="overflow-hidden rounded-3xl border border-border/70 bg-muted">
-              <img
-                src={spotlight.images?.[0] ?? spotlight.image}
-                alt={spotlight.name}
-                className="h-full w-full object-cover transition duration-700 hover:scale-105"
-              />
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2 mt-6 lg:mt-auto">
               {[spotlight.images?.[1] ?? secondaryLook.image, spotlight.images?.[2] ?? tertiaryLook.image].map(
                 (image, index) => (
                   <div
@@ -131,6 +124,16 @@ const Index = () => {
                   </div>
                 ),
               )}
+            </div>
+          </div>
+
+          <div className="w-full max-w-[720px] lg:max-w-none lg:order-1">
+            <div className="overflow-hidden rounded-3xl border border-border/70 bg-muted h-full">
+              <img
+                src={spotlight.images?.[0] ?? spotlight.image}
+                alt={spotlight.name}
+                className="h-full w-full object-cover transition duration-700 hover:scale-105"
+              />
             </div>
           </div>
         </div>
