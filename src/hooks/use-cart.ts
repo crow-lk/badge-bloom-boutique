@@ -151,14 +151,28 @@ const buildState = (payload: unknown): CartState => {
   };
 };
 
+const normalizeCurrencyCode = (currency: string | undefined, fallback: string) => {
+  const trimmed = (currency ?? "").trim().toUpperCase();
+  return /^[A-Z]{3}$/.test(trimmed) ? trimmed : fallback;
+};
+
 export const formatCartCurrency = (value?: number, currency = "LKR") => {
   if (value == null || Number.isNaN(value)) return "—";
-  return new Intl.NumberFormat("en-LK", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value);
+  const safeCurrency = normalizeCurrencyCode(currency, "LKR");
+  try {
+    return new Intl.NumberFormat("en-LK", {
+      style: "currency",
+      currency: safeCurrency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value);
+  } catch {
+    return new Intl.NumberFormat("en-LK", {
+      style: "decimal",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value);
+  }
 };
 
 export const useCart = () =>
