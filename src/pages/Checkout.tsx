@@ -3,6 +3,7 @@ import Navbar from "@/components/Navbar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -13,7 +14,9 @@ import { getStoredToken } from "@/lib/auth";
 import {
   initiatePayment,
   placeOrder,
+  storePayHereCheckout,
   type CheckoutAddress,
+  type PaymentMethod,
   type PaymentCustomerInput,
 } from "@/lib/checkout";
 import {
@@ -22,10 +25,14 @@ import {
   type ShippingAddress,
   type ShippingPayload,
 } from "@/lib/shipping";
-import { ChangeEvent, useEffect, useMemo, useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { type FieldErrors, useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Gift, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 const checkoutSteps = [
   { id: "shipping", label: "Shipping address", detail: "Confirm contact & delivery details." },
@@ -34,18 +41,20 @@ const checkoutSteps = [
 
 type CheckoutStep = (typeof checkoutSteps)[number]["id"];
 
-type ContactFormState = {
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  addressLine1: string;
-  addressLine2: string;
-  city: string;
-  province: string;
-  postalCode: string;
-  country: string;
-};
+const contactSchema = z.object({
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  email: z.string().email("Enter a valid email"),
+  phone: z.string().min(1, "Phone number is required"),
+  addressLine1: z.string().min(1, "Address line 1 is required"),
+  addressLine2: z.string().optional(),
+  city: z.string().min(1, "City is required"),
+  province: z.string().optional(),
+  postalCode: z.string().optional(),
+  country: z.string().min(1, "Country is required"),
+});
+
+type ContactFormState = z.infer<typeof contactSchema>;
 
 const FALLBACK_CONTACT: ContactFormState = {
   firstName: "Amara",
@@ -98,10 +107,10 @@ const buildShippingPayload = (form: ContactFormState, isFirstAddress: boolean): 
     recipient_name: `${first} ${last}`.trim() || first || last || "Customer",
     phone: form.phone.trim(),
     address_line1: form.addressLine1.trim(),
-    address_line2: form.addressLine2.trim() || undefined,
+    address_line2: (form.addressLine2 ?? "").trim() || undefined,
     city: form.city.trim(),
-    state: form.province.trim(),
-    postal_code: form.postalCode.trim(),
+    state: (form.province ?? "").trim(),
+    postal_code: (form.postalCode ?? "").trim(),
     country: form.country.trim() || "Sri Lanka",
     is_default: isFirstAddress,
   };
@@ -119,12 +128,9 @@ const REQUIRED_CONTACT_FIELDS: Array<{ key: keyof ContactFormState; label: strin
   { key: "country", label: "Country" },
 ];
 
-const validateContactDetails = (form: ContactFormState): string | null => {
+const getFirstErrorLabel = (errors: FieldErrors<ContactFormState>) => {
   for (const field of REQUIRED_CONTACT_FIELDS) {
-    const value = form[field.key];
-    if (!value || !String(value).trim()) {
-      return field.label;
-    }
+    if (errors[field.key]) return field.label;
   }
   return null;
 };
@@ -135,10 +141,10 @@ const buildCheckoutAddressFromContact = (form: ContactFormState): CheckoutAddres
   email: form.email.trim(),
   phone: form.phone.trim(),
   address_line1: form.addressLine1.trim(),
-  address_line2: form.addressLine2.trim() || undefined,
+  address_line2: (form.addressLine2 ?? "").trim() || undefined,
   city: form.city.trim(),
-  state: form.province.trim() || undefined,
-  postal_code: form.postalCode.trim() || undefined,
+  state: (form.province ?? "").trim() || undefined,
+  postal_code: (form.postalCode ?? "").trim() || undefined,
   country: form.country.trim() || "Sri Lanka",
 });
 
@@ -152,8 +158,60 @@ const buildPaymentCustomerPayload = (form: ContactFormState): PaymentCustomerInp
   country: form.country.trim() || "Sri Lanka",
 });
 
+type RedirectCheckout = {
+  actionUrl: string;
+  fields: Record<string, string>;
+};
+
+const isPayHereMethod = (method: PaymentMethod) => {
+  const probe = [method.slug, method.provider, method.name].filter(Boolean).join(" ").toLowerCase();
+  return probe.includes("payhere");
+};
+
+const normalizeRedirectCheckout = (checkout?: Record<string, unknown> | null): RedirectCheckout | null => {
+  if (!checkout) return null;
+  const type = String(checkout.type ?? checkout.checkout_type ?? "").toLowerCase();
+  if (type !== "redirect") return null;
+  const actionUrl = String(checkout.action_url ?? checkout.actionUrl ?? checkout.url ?? "");
+  if (!actionUrl) return null;
+  const rawFields = checkout.fields;
+  if (!rawFields || typeof rawFields !== "object") return null;
+  const fields = Object.entries(rawFields as Record<string, unknown>).reduce<Record<string, string>>(
+    (acc, [key, value]) => {
+      if (value == null) return acc;
+      acc[key] = String(value);
+      return acc;
+    },
+    {},
+  );
+  return { actionUrl, fields };
+};
+
+const RedirectCheckoutForm = ({ checkout }: { checkout: RedirectCheckout | null }) => {
+  const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    if (!checkout || !formRef.current) return;
+    formRef.current.submit();
+  }, [checkout]);
+
+  if (!checkout) return null;
+
+  return (
+    <form ref={formRef} action={checkout.actionUrl} method="POST" className="hidden">
+      {Object.entries(checkout.fields).map(([name, value]) => (
+        <input key={name} type="hidden" name={name} value={value} />
+      ))}
+    </form>
+  );
+};
+
 const Checkout = () => {
-  const [contactForm, setContactForm] = useState<ContactFormState>(FALLBACK_CONTACT);
+  const form = useForm<ContactFormState>({
+    resolver: zodResolver(contactSchema),
+    defaultValues: FALLBACK_CONTACT,
+    mode: "onBlur",
+  });
   const [shippingAddresses, setShippingAddresses] = useState<ShippingAddress[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
   const [loadingAddresses, setLoadingAddresses] = useState(false);
@@ -165,6 +223,7 @@ const Checkout = () => {
   const [notes, setNotes] = useState("");
   const [activeStep, setActiveStep] = useState<CheckoutStep>("shipping");
   const [processingPaymentId, setProcessingPaymentId] = useState<string | null>(null);
+  const [redirectCheckout, setRedirectCheckout] = useState<RedirectCheckout | null>(null);
   const {
     data: paymentMethods,
     isLoading: paymentMethodsLoading,
@@ -178,7 +237,7 @@ const Checkout = () => {
       setAddressesError("Sign in to load saved addresses.");
       setShippingAddresses([]);
       setSelectedAddressId(null);
-      setContactForm(FALLBACK_CONTACT);
+      form.reset(FALLBACK_CONTACT);
       setManualAddressMode(true);
       return;
     }
@@ -194,7 +253,7 @@ const Checkout = () => {
         if (addresses.length) {
           const preferred = addresses.find((address) => address.is_default) ?? addresses[0];
           setSelectedAddressId(preferred.id);
-          setContactForm((prev) => mergeContactWithAddress(preferred, prev));
+          form.reset(mergeContactWithAddress(preferred, form.getValues()));
           setManualAddressMode(false);
         }
       } catch (error) {
@@ -216,18 +275,11 @@ const Checkout = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
-
-  const handleContactChange =
-    (field: keyof ContactFormState) =>
-    (event: ChangeEvent<HTMLInputElement>) => {
-      const value = event.target.value;
-      setContactForm((prev) => ({ ...prev, [field]: value }));
-    };
+  }, [form]);
 
   const handleSelectAddress = (address: ShippingAddress) => {
     setSelectedAddressId(address.id);
-    setContactForm((prev) => mergeContactWithAddress(address, prev));
+    form.reset(mergeContactWithAddress(address, form.getValues()));
     setManualAddressMode(false);
   };
 
@@ -238,6 +290,7 @@ const Checkout = () => {
       return;
     }
 
+    const contactForm = form.getValues();
     const trimmedAddressLine1 = contactForm.addressLine1.trim();
     const trimmedCity = contactForm.city.trim();
     const trimmedPhone = contactForm.phone.trim();
@@ -267,7 +320,7 @@ const Checkout = () => {
       setShippingAddresses(refreshedAddresses);
       const targetAddress = refreshedAddresses.find((address) => address.id === saved.id) ?? saved;
       setSelectedAddressId(targetAddress.id);
-      setContactForm((prev) => mergeContactWithAddress(targetAddress, prev));
+      form.reset(mergeContactWithAddress(targetAddress, form.getValues()));
       setManualAddressMode(false);
       toast.success("Address saved.");
     } catch (error) {
@@ -310,23 +363,35 @@ const Checkout = () => {
   const subtotalLabel = formatCartCurrency(subtotalValue, orderCurrency);
   const totalLabel = formatCartCurrency(totalValue, orderCurrency);
 
+  const initiatePaymentMutation = useMutation({
+    mutationFn: initiatePayment,
+  });
+
+  const placeOrderMutation = useMutation({
+    mutationFn: placeOrder,
+  });
+
+  const isProcessing = Boolean(processingPaymentId) || initiatePaymentMutation.isPending || placeOrderMutation.isPending;
+
   const handlePaymentSelection = async (value: string) => {
     setSelectedPaymentId(value);
     if (!value) return;
-    if (processingPaymentId) return;
+    if (isProcessing) return;
     const method = availablePaymentMethods.find((entry) => String(entry.id) === value);
     if (!method) return;
     if (!summaryItems.length) {
       toast.error("Add at least one product to your bag before paying.");
       return;
     }
-    const missingField = validateContactDetails(contactForm);
-    if (missingField) {
-      toast.error(`${missingField} is required before paying.`);
+    const isValid = await form.trigger();
+    if (!isValid) {
+      const missingField = getFirstErrorLabel(form.formState.errors);
+      toast.error(`${missingField ?? "Contact details"} is required before paying.`);
       setActiveStep("shipping");
       return;
     }
 
+    const contactForm = form.getValues();
     const shippingAddress = buildCheckoutAddressFromContact(contactForm);
     const customerPayload = buildPaymentCustomerPayload(contactForm);
     const itemsDescription =
@@ -334,16 +399,40 @@ const Checkout = () => {
 
     setProcessingPaymentId(value);
     try {
-      const paymentResponse = await initiatePayment({
+      const isPayHere = isPayHereMethod(method);
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      const paymentResponse = await initiatePaymentMutation.mutateAsync({
         payment_method_id: method.id,
         customer: customerPayload,
         items_description: itemsDescription,
+        return_url: isPayHere && origin ? `${origin}/payments/payhere/return` : undefined,
+        cancel_url: isPayHere && origin ? `${origin}/payments/payhere/cancel` : undefined,
       });
       const paymentId = paymentResponse.payment?.id;
       if (!paymentId) {
         throw new Error("Payment gateway did not return a payment reference.");
       }
-      await placeOrder({
+      const redirectCheckout = normalizeRedirectCheckout(
+        paymentResponse.checkout as Record<string, unknown>,
+      );
+      if (redirectCheckout) {
+        if (isPayHere) {
+          storePayHereCheckout({
+            payment_id: paymentId,
+            payment_method_id: method.id,
+            shipping: shippingAddress,
+            billing: shippingAddress,
+            notes: notes.trim() || undefined,
+            currency: orderCurrency,
+            checkout: paymentResponse.checkout as Record<string, unknown>,
+            created_at: new Date().toISOString(),
+          });
+        }
+        setRedirectCheckout(redirectCheckout);
+        return;
+      }
+
+      await placeOrderMutation.mutateAsync({
         payment_id: paymentId,
         payment_method_id: method.id,
         shipping: shippingAddress,
@@ -486,125 +575,162 @@ const Checkout = () => {
                       </Button>
                     </div>
                   )}
-                  {showManualForm && (
-                    <>
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <div className="space-y-2">
-                          <Label htmlFor="first-name">First name</Label>
-                          <Input
-                            id="first-name"
-                            placeholder="Amara"
-                            value={contactForm.firstName}
-                            onChange={handleContactChange("firstName")}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="last-name">Last name</Label>
-                          <Input
-                            id="last-name"
-                            placeholder="Jayasinghe"
-                            value={contactForm.lastName}
-                            onChange={handleContactChange("lastName")}
-                          />
-                        </div>
-                      </div>
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <div className="space-y-2">
-                          <Label htmlFor="email">Email</Label>
-                          <Input
-                            id="email"
-                            type="email"
-                            placeholder="amara@example.com"
-                            value={contactForm.email}
-                            onChange={handleContactChange("email")}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="phone">Phone</Label>
-                          <Input
-                            id="phone"
-                            placeholder="+94 77 123 4567"
-                            value={contactForm.phone}
-                            onChange={handleContactChange("phone")}
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="address-line1">Address line 1</Label>
-                        <Input
-                          id="address-line1"
-                          placeholder="45 Flower Road"
-                          value={contactForm.addressLine1}
-                          onChange={handleContactChange("addressLine1")}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="address-line2">Address line 2</Label>
-                        <Input
-                          id="address-line2"
-                          placeholder="Colombo 07"
-                          value={contactForm.addressLine2}
-                          onChange={handleContactChange("addressLine2")}
-                        />
-                      </div>
-                      <div className="grid gap-4 sm:grid-cols-3">
-                        <div className="space-y-2">
-                          <Label htmlFor="city">City</Label>
-                          <Input
-                            id="city"
-                            placeholder="Colombo"
-                            value={contactForm.city}
-                            onChange={handleContactChange("city")}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="province">Province</Label>
-                          <Input
-                            id="province"
-                            placeholder="Western"
-                            value={contactForm.province}
-                            onChange={handleContactChange("province")}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="postal">Postal code</Label>
-                          <Input
-                            id="postal"
-                            placeholder="00700"
-                            value={contactForm.postalCode}
-                            onChange={handleContactChange("postalCode")}
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="country">Country</Label>
-                        <Input
-                          id="country"
-                          placeholder="Sri Lanka"
-                          value={contactForm.country}
-                          onChange={handleContactChange("country")}
-                        />
-                      </div>
-                      {getStoredToken() ? (
-                        <div className="flex justify-end">
-                          <Button
-                            type="button"
-                            disabled={isSavingAddress}
-                            onClick={handleSaveAddress}
-                          >
-                            {isSavingAddress ? (
-                              <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Saving...
-                              </>
-                            ) : (
-                              "Save address"
+                  <Form {...form}>
+                    {showManualForm && (
+                      <>
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          <FormField
+                            control={form.control}
+                            name="firstName"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>First name</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Amara" {...field} value={field.value ?? ""} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
                             )}
-                          </Button>
+                          />
+                          <FormField
+                            control={form.control}
+                            name="lastName"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Last name</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Jayasinghe" {...field} value={field.value ?? ""} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
                         </div>
-                      ) : null}
-                    </>
-                  )}
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          <FormField
+                            control={form.control}
+                            name="email"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Email</FormLabel>
+                                <FormControl>
+                                  <Input type="email" placeholder="amara@example.com" {...field} value={field.value ?? ""} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="phone"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Phone</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="+94 77 123 4567" {...field} value={field.value ?? ""} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                        <FormField
+                          control={form.control}
+                          name="addressLine1"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Address line 1</FormLabel>
+                              <FormControl>
+                                <Input placeholder="45 Flower Road" {...field} value={field.value ?? ""} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="addressLine2"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Address line 2</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Colombo 07" {...field} value={field.value ?? ""} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <div className="grid gap-4 sm:grid-cols-3">
+                          <FormField
+                            control={form.control}
+                            name="city"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>City</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Colombo" {...field} value={field.value ?? ""} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="province"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Province</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Western" {...field} value={field.value ?? ""} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="postalCode"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Postal code</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="00700" {...field} value={field.value ?? ""} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                        <FormField
+                          control={form.control}
+                          name="country"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Country</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Sri Lanka" {...field} value={field.value ?? ""} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        {getStoredToken() ? (
+                          <div className="flex justify-end">
+                            <Button type="button" disabled={isSavingAddress} onClick={handleSaveAddress}>
+                              {isSavingAddress ? (
+                                <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  Saving...
+                                </>
+                              ) : (
+                                "Save address"
+                              )}
+                            </Button>
+                          </div>
+                        ) : null}
+                      </>
+                    )}
+                  </Form>
                   <div className="rounded-2xl border border-dashed border-border/60 bg-background/30 p-4 sm:flex sm:items-center sm:justify-between sm:gap-4">
                     <p className="text-sm text-muted-foreground">
                       Ready to lock this in? Your payment choice comes next.
@@ -668,7 +794,7 @@ const Checkout = () => {
                               id={`payment-${method.id}`}
                               value={String(method.id)}
                               className="mt-1"
-                              disabled={Boolean(processingPaymentId)}
+                              disabled={isProcessing}
                             />
                             <div>
                               <p className="text-sm font-semibold">{method.name}</p>
@@ -785,6 +911,7 @@ const Checkout = () => {
         </div>
       </main>
       <Footer />
+      <RedirectCheckoutForm checkout={redirectCheckout} />
     </div>
   );
 };
