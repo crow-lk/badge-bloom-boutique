@@ -57,9 +57,9 @@ const contactSchema = z.object({
 type ContactFormState = z.infer<typeof contactSchema>;
 
 const FALLBACK_CONTACT: ContactFormState = {
-  firstName: "Amara",
-  lastName: "Jayasinghe",
-  email: "amara@example.com",
+  firstName: "Olivia",
+  lastName: "Perera",
+  email: "olivia@aaliyaa.com",
   phone: "+94 77 123 4567",
   addressLine1: "45 Flower Road",
   addressLine2: "Colombo 07",
@@ -593,7 +593,7 @@ const Checkout = () => {
                               <FormItem>
                                 <FormLabel>First name</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="Amara" className="placeholder:text-muted-foreground/60" {...field} value={field.value ?? ""} />
+                                  <Input placeholder="Olivia" className="placeholder:text-muted-foreground/60" {...field} value={field.value ?? ""} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -606,7 +606,7 @@ const Checkout = () => {
                               <FormItem>
                                 <FormLabel>Last name</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="Jayasinghe" className="placeholder:text-muted-foreground/60" {...field} value={field.value ?? ""} />
+                                  <Input placeholder="Perera" className="placeholder:text-muted-foreground/60" {...field} value={field.value ?? ""} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -621,7 +621,7 @@ const Checkout = () => {
                               <FormItem>
                                 <FormLabel>Email</FormLabel>
                                 <FormControl>
-                                  <Input type="email" placeholder="amara@example.com" className="placeholder:text-muted-foreground/60" {...field} value={field.value ?? ""} />
+                                  <Input type="email" placeholder="olivia@aaliyaa.com" className="placeholder:text-muted-foreground/60" {...field} value={field.value ?? ""} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>

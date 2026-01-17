@@ -34,16 +34,16 @@ const Contact = () => {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="name">Full name</Label>
-                    <Input id="name" name="name" placeholder="Aaliya Noor" autoComplete="name" required />
+                    <Input id="name" name="name" placeholder="Olivia Perera" autoComplete="name" className="placeholder:text-muted-foreground/60" required />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
-                    <Input id="email" name="email" type="email" placeholder="info@aaliyaa.com" autoComplete="email" required />
+                    <Input id="email" name="email" type="email" placeholder="olivia@aaliyaa.com" autoComplete="email" className="placeholder:text-muted-foreground/60" required />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="phone">Phone</Label>
-                  <Input id="phone" name="phone" type="tel" placeholder="0703363363" autoComplete="tel" />
+                  <Input id="phone" name="phone" type="tel" placeholder="0703363363" autoComplete="tel" className="placeholder:text-muted-foreground/60" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="message">How can we help?</Label>
@@ -51,7 +51,7 @@ const Contact = () => {
                     id="message"
                     name="message"
                     placeholder="Tell us about your inquiry, event, or styling question."
-                    className="min-h-[140px]"
+                    className="min-h-[140px] placeholder:text-muted-foreground/60"
                     required
                   />
                 </div>
