@@ -7,6 +7,7 @@ export type PaymentMethod = {
   slug?: string | null;
   provider?: string | null;
   type?: string | null;
+  icon_path?: string | null;
   instructions?: string | null;
   description?: string | null;
   logo?: string | null;

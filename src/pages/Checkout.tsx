@@ -10,7 +10,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { formatCartCurrency, useCart } from "@/hooks/use-cart";
 import { usePaymentMethods } from "@/hooks/use-payment-methods";
-import { getStoredToken } from "@/lib/auth";
+import { API_BASE_URL, getStoredToken } from "@/lib/auth";
 import {
   initiatePayment,
   placeOrder,
@@ -823,13 +823,23 @@ const Checkout = () => {
                                   className="mt-1"
                                   disabled={isProcessing}
                                 />
-                                <div>
-                                  <p className="text-sm font-semibold">{method.name}</p>
-                                  {method.provider && (
-                                    <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">
-                                      {method.provider}
-                                    </p>
-                                  )}
+                                <div className="flex items-center gap-4">
+                                  <img
+                                    src={`${API_BASE_URL}/storage/${method.icon_path}`}
+                                    alt={method.name}
+                                    width={150}
+                                    height={70}
+                                    className="object-contain"
+                                  />
+
+                                  <div>
+                                    <p className="text-sm font-semibold">{method.name}</p>
+                                    {method.provider && (
+                                      <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">
+                                        {method.provider}
+                                      </p>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
 
