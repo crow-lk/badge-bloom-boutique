@@ -1,5 +1,5 @@
 import heroImage from "@/assets/hero-image.jpg";
-import logo from "@/assets/logo.jpeg";
+import logo from "@/assets/aaliyaa_logo.png";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 
@@ -18,7 +18,7 @@ const Hero = () => {
           <img
             src={logo}
             alt="Aaliyaa logo"
-            className="h-40 w-40 rounded-full object-cover shadow-2xl md:h-48 md:w-48 animate-logo-float"
+            className="h-40 w-40 md:h-48 md:w-48 animate-logo-float"
           />
         </div>
         <p className="text-lg md:text-xl font-light text-muted-foreground mb-8 max-w-2xl mx-auto">

@@ -33,6 +33,13 @@ import { ArrowLeft, ArrowRight, Gift, Loader2, ShieldCheck } from "lucide-react"
 import { toast } from "sonner";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const checkoutSteps = [
   { id: "shipping", label: "Shipping address", detail: "Confirm contact & delivery details." },
@@ -40,8 +47,6 @@ const checkoutSteps = [
 ] as const;
 
 type CheckoutStep = (typeof checkoutSteps)[number]["id"];
-
-const DELIVERY_CHARGE = 450;
 
 const contactSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -70,6 +75,18 @@ const FALLBACK_CONTACT: ContactFormState = {
   postalCode: "00700",
   country: "Sri Lanka",
 };
+
+const provinces = [
+  "Western",
+  "Central",
+  "Southern",
+  "Northern",
+  "Eastern",
+  "North Western",
+  "North Central",
+  "Uva",
+  "Sabaragamuwa",
+];
 
 const splitRecipientName = (value?: string | null) => {
   if (!value) return { first: "", last: "" };
@@ -208,22 +225,13 @@ const RedirectCheckoutForm = ({ checkout }: { checkout: RedirectCheckout | null 
   );
 };
 
-const extractStoredEmail = (user: ReturnType<typeof getStoredUser>) => {
-  if (!user) return "";
-  const record = user as Record<string, unknown>;
-  const candidate = user.email ?? record.email_address ?? record.emailAddress;
-  return candidate ? String(candidate).trim() : "";
-};
-
 const Checkout = () => {
-  const storedUser = useMemo(() => getStoredUser(), []);
-  const storedEmail = useMemo(() => extractStoredEmail(storedUser), [storedUser]);
   const form = useForm<ContactFormState>({
     resolver: zodResolver(contactSchema),
     defaultValues: {
       firstName: "",
       lastName: "",
-      email: storedEmail,
+      email: "",
       phone: "",
       addressLine1: "",
       addressLine2: "",
@@ -252,14 +260,6 @@ const Checkout = () => {
     isError: paymentMethodsError,
   } = usePaymentMethods();
   const { data: cart, isLoading: cartLoading } = useCart();
-
-  useEffect(() => {
-    if (!storedEmail) return;
-    const currentEmail = form.getValues("email").trim();
-    if (!currentEmail) {
-      form.setValue("email", storedEmail, { shouldValidate: true });
-    }
-  }, [form, storedEmail]);
 
   useEffect(() => {
     const token = getStoredToken();
@@ -374,13 +374,6 @@ const Checkout = () => {
     });
   }, [cart?.items]);
   const orderCurrency = cart?.currency ?? "LKR";
-  const addressLine1Value = form.watch("addressLine1");
-  const cityValue = form.watch("city");
-  const countryValue = form.watch("country");
-  const hasDeliveryAddress = [addressLine1Value, cityValue, countryValue].every(
-    (value) => Boolean(String(value ?? "").trim()),
-  );
-  const deliveryCharge = hasDeliveryAddress ? DELIVERY_CHARGE : 0;
   const cartSubtotal = cart?.subtotal;
   const cartTotal = cart?.total;
   const derivedSubtotal = summaryItems.reduce((sum, item) => sum + (item.lineTotal ?? 0), 0);
@@ -397,12 +390,8 @@ const Checkout = () => {
       ? derivedSubtotal
       : serverTotal ?? derivedSubtotal
     : serverTotal ?? serverSubtotal ?? 0;
-  const totalWithDelivery = totalValue + deliveryCharge;
   const subtotalLabel = formatCartCurrency(subtotalValue, orderCurrency);
-  const totalLabel = formatCartCurrency(totalWithDelivery, orderCurrency);
-  const deliveryLabel = hasDeliveryAddress
-    ? formatCartCurrency(deliveryCharge, orderCurrency)
-    : "—";
+  const totalLabel = formatCartCurrency(totalValue, orderCurrency);
 
   const initiatePaymentMutation = useMutation({
     mutationFn: initiatePayment,
@@ -414,20 +403,6 @@ const Checkout = () => {
 
   const isProcessing = Boolean(processingPaymentId) || initiatePaymentMutation.isPending || placeOrderMutation.isPending;
 
-  const ensureEmailFromUser = () => {
-    const currentEmail = form.getValues("email").trim();
-    if (currentEmail) return currentEmail;
-    const storedEmail = getStoredUser()?.email;
-    if (storedEmail) {
-      const normalized = String(storedEmail).trim();
-      if (normalized) {
-        form.setValue("email", normalized, { shouldValidate: true });
-        return normalized;
-      }
-    }
-    return currentEmail;
-  };
-
   const handlePaymentSelection = async (value: string) => {
     setSelectedPaymentId(value);
     if (!value) return;
@@ -438,7 +413,6 @@ const Checkout = () => {
       toast.error("Add at least one product to your bag before paying.");
       return;
     }
-    ensureEmailFromUser();
     const isValid = await form.trigger();
     if (!isValid) {
       const missingField = getFirstErrorLabel(form.formState.errors);
@@ -452,7 +426,6 @@ const Checkout = () => {
     const customerPayload = buildPaymentCustomerPayload(contactForm);
     const itemsDescription =
       summaryItems.map((item) => `${item.quantity}x ${item.name}`).join(", ") || "Order payment";
-    const shippingTotal = deliveryCharge > 0 ? deliveryCharge : undefined;
 
     setProcessingPaymentId(value);
     try {
@@ -462,7 +435,6 @@ const Checkout = () => {
         payment_method_id: method.id,
         customer: customerPayload,
         items_description: itemsDescription,
-        shipping_total: shippingTotal,
         return_url: isPayHere && origin ? `${origin}/payments/payhere/return` : undefined,
         cancel_url: isPayHere && origin ? `${origin}/payments/payhere/cancel` : undefined,
       });
@@ -480,7 +452,6 @@ const Checkout = () => {
             payment_method_id: method.id,
             shipping: shippingAddress,
             billing: shippingAddress,
-            shipping_total: shippingTotal,
             notes: notes.trim() || undefined,
             currency: orderCurrency,
             checkout: paymentResponse.checkout as Record<string, unknown>,
@@ -496,7 +467,6 @@ const Checkout = () => {
         payment_method_id: method.id,
         shipping: shippingAddress,
         billing: shippingAddress,
-        shipping_total: shippingTotal,
         notes: notes.trim() || undefined,
         currency: orderCurrency,
       });
@@ -736,9 +706,27 @@ const Checkout = () => {
                             render={({ field }) => (
                               <FormItem>
                                 <FormLabel>Province</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="Western" className="placeholder:text-muted-foreground/60" {...field} value={field.value ?? ""} />
-                                </FormControl>
+                                <Select
+                                  onValueChange={field.onChange}
+                                  value={field.value ?? ""}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select province" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="Western">Western</SelectItem>
+                                    <SelectItem value="Central">Central</SelectItem>
+                                    <SelectItem value="Southern">Southern</SelectItem>
+                                    <SelectItem value="Northern">Northern</SelectItem>
+                                    <SelectItem value="Eastern">Eastern</SelectItem>
+                                    <SelectItem value="North Western">North Western</SelectItem>
+                                    <SelectItem value="North Central">North Central</SelectItem>
+                                    <SelectItem value="Uva">Uva</SelectItem>
+                                    <SelectItem value="Sabaragamuwa">Sabaragamuwa</SelectItem>
+                                  </SelectContent>
+                                </Select>
                                 <FormMessage />
                               </FormItem>
                             )}
@@ -799,7 +787,6 @@ const Checkout = () => {
                       type="button"
                       className="mt-3 w-full sm:mt-0 sm:w-auto"
                       onClick={async () => {
-                        ensureEmailFromUser();
                         const isValid = await form.trigger();
                         if (!isValid) {
                           const missingField = getFirstErrorLabel(form.formState.errors);
@@ -1001,14 +988,8 @@ const Checkout = () => {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Shipping</span>
-                    <span className="font-medium">
-                      {summaryItems.length ? deliveryLabel : formatCartCurrency(0, orderCurrency)}
-                    </span>
+                    <span className="text-xs uppercase tracking-[0.35em] text-muted-foreground">Calculated at payment</span>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Islandwide delivery is {formatCartCurrency(DELIVERY_CHARGE, orderCurrency)} and will be charged
-                    once your address is filled.
-                  </p>
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Taxes</span>
                     <span className="text-xs uppercase tracking-[0.35em] text-muted-foreground">Included where applicable</span>
