@@ -162,19 +162,28 @@ export const initiatePayment = async (
   return (await response.json()) as InitiatePaymentResponse;
 };
 
-export const placeOrder = async (input: PlaceOrderInput): Promise<PlaceOrderResponse> => {
+export const placeOrder = async (
+  input: PlaceOrderInput
+): Promise<PlaceOrderResponse> => {
   const { token, sessionId } = resolveCheckoutContext();
+
   const response = await fetch(`${API_BASE_URL}/api/checkout/orders`, {
     method: "POST",
-    headers: authHeaders(token),
+    headers: {
+      ...authHeaders(token),
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
     body: JSON.stringify({
       ...input,
       session_id: input.session_id ?? sessionId ?? undefined,
     }),
   });
+
   if (!response.ok) {
     await parseError(response);
   }
+
   return (await response.json()) as PlaceOrderResponse;
 };
 
