@@ -948,7 +948,7 @@ const Checkout = () => {
                               Processing...
                             </>
                           ) : (
-                            "Order Complete"
+                            "Complete Order"
                           )}
                         </Button>
                       )}
