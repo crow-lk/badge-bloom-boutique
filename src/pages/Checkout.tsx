@@ -209,7 +209,18 @@ const RedirectCheckoutForm = ({ checkout }: { checkout: RedirectCheckout | null 
 const Checkout = () => {
   const form = useForm<ContactFormState>({
     resolver: zodResolver(contactSchema),
-    defaultValues: FALLBACK_CONTACT,
+    defaultValues: {
+      firstName: "",
+      lastName: "",
+      email: "",
+      phone: "",
+      addressLine1: "",
+      addressLine2: "",
+      city: "",
+      province: "",
+      postalCode: "",
+      country: "",
+    },
     mode: "onBlur",
   });
   const [shippingAddresses, setShippingAddresses] = useState<ShippingAddress[]>([]);
@@ -460,12 +471,9 @@ const Checkout = () => {
           <div className="space-y-2 text-center md:text-left">
             <p className="text-[11px] uppercase tracking-[0.35em] text-muted-foreground">Checkout</p>
             <h1 className="text-3xl font-light tracking-tight md:text-4xl">Finish your order</h1>
-            <p className="text-sm text-muted-foreground md:text-base">
-              This sandbox checkout uses static data so you can review the layout while integrations are offline.
-            </p>
           </div>
 
-          <Card className="border-border/70 bg-card/70 p-5">
+          {/* <Card className="border-border/70 bg-card/70 p-5">
             <div className="grid gap-4 md:grid-cols-2">
               {checkoutSteps.map((step, index) => {
                 const isCurrent = index === currentStepIndex;
@@ -495,7 +503,7 @@ const Checkout = () => {
                 );
               })}
             </div>
-          </Card>
+          </Card> */}
 
           <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr]">
             <section className="space-y-6">
@@ -532,9 +540,8 @@ const Checkout = () => {
                           return (
                             <div
                               key={address.id}
-                              className={`rounded-2xl border p-4 transition ${
-                                isSelected ? "border-foreground bg-muted/70 shadow-sm" : "border-border/60 bg-background/20"
-                              }`}
+                              className={`rounded-2xl border p-4 transition ${isSelected ? "border-foreground bg-muted/70 shadow-sm" : "border-border/60 bg-background/20"
+                                }`}
                             >
                               <div className="flex flex-wrap items-center justify-between gap-3">
                                 <div>
@@ -586,7 +593,7 @@ const Checkout = () => {
                               <FormItem>
                                 <FormLabel>First name</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="Amara" {...field} value={field.value ?? ""} />
+                                  <Input placeholder="Amara" className="placeholder:text-muted-foreground/60" {...field} value={field.value ?? ""} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -599,7 +606,7 @@ const Checkout = () => {
                               <FormItem>
                                 <FormLabel>Last name</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="Jayasinghe" {...field} value={field.value ?? ""} />
+                                  <Input placeholder="Jayasinghe" className="placeholder:text-muted-foreground/60" {...field} value={field.value ?? ""} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -614,7 +621,7 @@ const Checkout = () => {
                               <FormItem>
                                 <FormLabel>Email</FormLabel>
                                 <FormControl>
-                                  <Input type="email" placeholder="amara@example.com" {...field} value={field.value ?? ""} />
+                                  <Input type="email" placeholder="amara@example.com" className="placeholder:text-muted-foreground/60" {...field} value={field.value ?? ""} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -627,7 +634,7 @@ const Checkout = () => {
                               <FormItem>
                                 <FormLabel>Phone</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="+94 77 123 4567" {...field} value={field.value ?? ""} />
+                                  <Input placeholder="+94 77 123 4567" className="placeholder:text-muted-foreground/60" {...field} value={field.value ?? ""} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -641,7 +648,7 @@ const Checkout = () => {
                             <FormItem>
                               <FormLabel>Address line 1</FormLabel>
                               <FormControl>
-                                <Input placeholder="45 Flower Road" {...field} value={field.value ?? ""} />
+                                <Input placeholder="45 Flower Road" className="placeholder:text-muted-foreground/60" {...field} value={field.value ?? ""} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -654,7 +661,7 @@ const Checkout = () => {
                             <FormItem>
                               <FormLabel>Address line 2</FormLabel>
                               <FormControl>
-                                <Input placeholder="Colombo 07" {...field} value={field.value ?? ""} />
+                                <Input placeholder="Colombo 07" className="placeholder:text-muted-foreground/60" {...field} value={field.value ?? ""} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -668,7 +675,7 @@ const Checkout = () => {
                               <FormItem>
                                 <FormLabel>City</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="Colombo" {...field} value={field.value ?? ""} />
+                                  <Input placeholder="Colombo" className="placeholder:text-muted-foreground/60" {...field} value={field.value ?? ""} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -681,7 +688,7 @@ const Checkout = () => {
                               <FormItem>
                                 <FormLabel>Province</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="Western" {...field} value={field.value ?? ""} />
+                                  <Input placeholder="Western" className="placeholder:text-muted-foreground/60" {...field} value={field.value ?? ""} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -694,7 +701,11 @@ const Checkout = () => {
                               <FormItem>
                                 <FormLabel>Postal code</FormLabel>
                                 <FormControl>
-                                  <Input placeholder="00700" {...field} value={field.value ?? ""} />
+                                  <Input
+                                    placeholder="00700"
+                                    className="placeholder:text-muted-foreground/60"
+                                    {...field}
+                                  />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
@@ -708,7 +719,7 @@ const Checkout = () => {
                             <FormItem>
                               <FormLabel>Country</FormLabel>
                               <FormControl>
-                                <Input placeholder="Sri Lanka" {...field} value={field.value ?? ""} />
+                                <Input placeholder="Sri Lanka" className="placeholder:text-muted-foreground/60" {...field} value={field.value ?? ""} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -786,10 +797,9 @@ const Checkout = () => {
                           <label
                             key={method.id}
                             htmlFor={`payment-${method.id}`}
-                            className={`flex cursor-pointer items-start gap-4 rounded-2xl border p-4 ${
-                              String(method.id) === selectedPaymentId ? "border-foreground bg-muted/60" : "border-border/60 bg-background/60"
-                            }`}
-                            >
+                            className={`flex cursor-pointer items-start gap-4 rounded-2xl border p-4 ${String(method.id) === selectedPaymentId ? "border-foreground bg-muted/60" : "border-border/60 bg-background/60"
+                              }`}
+                          >
                             <RadioGroupItem
                               id={`payment-${method.id}`}
                               value={String(method.id)}
