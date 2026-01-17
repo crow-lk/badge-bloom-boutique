@@ -409,10 +409,10 @@ const ProductDetail = () => {
               <Card className="border-0 bg-card/80 p-5 shadow-sm backdrop-blur md:p-6">
                 <div className="grid gap-3 md:grid-cols-3">
                   <Detail title="Material" value={displayValue(materialDetails)} />
-                  <Detail title="Brand" value={displayValue(product.brand_id, "Aaliyaa Atelier")} />
-                  <Detail title="Category" value={displayValue(product.category_id)} />
+                  {/* <Detail title="Brand" value={displayValue(product.brand_id, "Aaliyaa Atelier")} />
+                  <Detail title="Category" value={displayValue(product.category_id)} /> */}
                   <Detail title="Season" value={displayValue(product.season, "Seasonless")} />
-                  <Detail title="Collection" value={displayValue(product.collection_id)} />
+                  <Detail title="Collection" value={displayValue(product.collection_name)} />
                   <Detail title="Status" value={displayValue(product.status)} />
                 </div>
                 <Separator className="my-4" />
