@@ -749,7 +749,15 @@ const Checkout = () => {
                     <Button
                       type="button"
                       className="mt-3 w-full sm:mt-0 sm:w-auto"
-                      onClick={() => setActiveStep("payment")}
+                      onClick={async () => {
+                        const isValid = await form.trigger();
+                        if (!isValid) {
+                          const missingField = getFirstErrorLabel(form.formState.errors);
+                          toast.error(`${missingField ?? "Contact details"} is required before proceeding.`);
+                          return;
+                        }
+                        setActiveStep("payment");
+                      }}
                     >
                       Continue to payment
                       <ArrowRight className="ml-2 h-4 w-4" />
@@ -778,6 +786,7 @@ const Checkout = () => {
                       Shipping
                     </Button>
                   </div>
+
                   {paymentMethodsLoading ? (
                     <div className="rounded-2xl border border-dashed border-border/60 bg-background/40 p-4 text-sm text-muted-foreground">
                       Loading payment methods...
@@ -787,51 +796,94 @@ const Checkout = () => {
                       Unable to load payment methods. Refresh the page or try again shortly.
                     </div>
                   ) : availablePaymentMethods.length ? (
-                    <RadioGroup value={selectedPaymentId} onValueChange={handlePaymentSelection} className="space-y-3">
-                      {availablePaymentMethods.map((method) => {
+                    <>
+                      <RadioGroup
+                        value={selectedPaymentId}
+                        onValueChange={(value) => setSelectedPaymentId(value)}
+                        className="space-y-3"
+                      >
+                        {availablePaymentMethods.map((method) => {
+                          const isSelected = String(method.id) === selectedPaymentId;
+                          const description =
+                            (method.instructions && String(method.instructions).trim()) ||
+                            (method.description && String(method.description).trim()) ||
+                            `Use ${method.name} for payment`;
+
+                          return (
+                            <label
+                              key={method.id}
+                              htmlFor={`payment-${method.id}`}
+                              className={`flex flex-col cursor-pointer gap-2 rounded-2xl border p-4 ${isSelected ? "border-foreground bg-muted/60" : "border-border/60 bg-background/60"
+                                }`}
+                            >
+                              <div className="flex items-start gap-4">
+                                <RadioGroupItem
+                                  id={`payment-${method.id}`}
+                                  value={String(method.id)}
+                                  className="mt-1"
+                                  disabled={isProcessing}
+                                />
+                                <div>
+                                  <p className="text-sm font-semibold">{method.name}</p>
+                                  {method.provider && (
+                                    <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">
+                                      {method.provider}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Description under each selected method */}
+                              {isSelected && (
+                                <div className="mt-2 rounded-2xl border border-border/60 bg-background/40 p-3 text-sm text-muted-foreground whitespace-pre-wrap">
+                                  {description}
+                                </div>
+                              )}
+                            </label>
+                          );
+                        })}
+                      </RadioGroup>
+                      {/* Show selected method description */}
+                      {/* {selectedPaymentId && (() => {
+                        const method = availablePaymentMethods.find((m) => String(m.id) === selectedPaymentId);
+                        if (!method) return null;
                         const description =
                           (method.instructions && String(method.instructions).trim()) ||
                           (method.description && String(method.description).trim()) ||
                           `Use ${method.name} for payment`;
                         return (
-                          <label
-                            key={method.id}
-                            htmlFor={`payment-${method.id}`}
-                            className={`flex cursor-pointer items-start gap-4 rounded-2xl border p-4 ${String(method.id) === selectedPaymentId ? "border-foreground bg-muted/60" : "border-border/60 bg-background/60"
-                              }`}
-                          >
-                            <RadioGroupItem
-                              id={`payment-${method.id}`}
-                              value={String(method.id)}
-                              className="mt-1"
-                              disabled={isProcessing}
-                            />
-                            <div>
-                              <p className="text-sm font-semibold">{method.name}</p>
-                              {method.provider && (
-                                <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">{method.provider}</p>
-                              )}
-                              <p className="mt-1 text-sm text-muted-foreground">{description}</p>
-                              {processingPaymentId === String(method.id) && (
-                                <p className="mt-2 flex items-center text-xs text-muted-foreground">
-                                  <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                                  Contacting gateway…
-                                </p>
-                              )}
-                            </div>
-                          </label>
+                          <div className="rounded-2xl border border-border/60 bg-background/40 p-4 text-sm text-muted-foreground whitespace-pre-wrap">
+                            {description}
+                          </div>
                         );
-                      })}
-                    </RadioGroup>
+                      })()} */}
+
+                      {/* Start Payment Button */}
+                      {selectedPaymentId && (
+                        <Button
+                          type="button"
+                          className="mt-4 w-full"
+                          disabled={isProcessing}
+                          onClick={() => handlePaymentSelection(selectedPaymentId)}
+                        >
+                          {isProcessing ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Processing...
+                            </>
+                          ) : (
+                            "Order Complete"
+                          )}
+                        </Button>
+                      )}
+                    </>
                   ) : (
                     <div className="rounded-2xl border border-dashed border-border/60 bg-background/40 p-4 text-sm text-muted-foreground">
                       No payment methods are available yet. Configure them in the admin portal to enable checkout.
                     </div>
                   )}
-                  <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">
-                    Selecting a method will immediately start your payment.
-                  </p>
-                  <div className="space-y-2">
+
+                  <div className="space-y-2 mt-4">
                     <Label htmlFor="order-notes">Order notes</Label>
                     <Textarea
                       id="order-notes"
@@ -840,6 +892,7 @@ const Checkout = () => {
                       onChange={(event) => setNotes(event.target.value)}
                     />
                   </div>
+
                   {processingPaymentId && (
                     <div className="flex items-center gap-3 rounded-2xl border border-dashed border-border/60 bg-background/50 p-4 text-sm text-muted-foreground">
                       <Loader2 className="h-4 w-4 animate-spin" />
