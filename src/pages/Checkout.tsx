@@ -659,7 +659,7 @@ const Checkout = () => {
                           name="addressLine2"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Address line 2</FormLabel>
+                              <FormLabel>Address line 2 (optional)</FormLabel>
                               <FormControl>
                                 <Input placeholder="Colombo 07" className="placeholder:text-muted-foreground/60" {...field} value={field.value ?? ""} />
                               </FormControl>
