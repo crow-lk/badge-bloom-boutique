@@ -10,7 +10,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { formatCartCurrency, useCart } from "@/hooks/use-cart";
 import { usePaymentMethods } from "@/hooks/use-payment-methods";
-import { API_BASE_URL, getStoredToken } from "@/lib/auth";
+import { API_BASE_URL, getStoredToken, getStoredUser } from "@/lib/auth";
 import {
   initiatePayment,
   placeOrder,
@@ -206,6 +206,13 @@ const normalizeRedirectCheckout = (checkout?: Record<string, unknown> | null): R
   return { actionUrl, fields };
 };
 
+const extractStoredEmail = (user: ReturnType<typeof getStoredUser>) => {
+  if (!user) return "";
+  const record = user as Record<string, unknown>;
+  const candidate = user.email ?? record.email_address ?? record.emailAddress;
+  return candidate ? String(candidate).trim() : "";
+};
+
 const RedirectCheckoutForm = ({ checkout }: { checkout: RedirectCheckout | null }) => {
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -226,12 +233,14 @@ const RedirectCheckoutForm = ({ checkout }: { checkout: RedirectCheckout | null 
 };
 
 const Checkout = () => {
+  const storedUser = useMemo(() => getStoredUser(), []);
+  const storedEmail = useMemo(() => extractStoredEmail(storedUser), [storedUser]);
   const form = useForm<ContactFormState>({
     resolver: zodResolver(contactSchema),
     defaultValues: {
       firstName: "",
       lastName: "",
-      email: "",
+      email: storedEmail,
       phone: "",
       addressLine1: "",
       addressLine2: "",
@@ -260,6 +269,14 @@ const Checkout = () => {
     isError: paymentMethodsError,
   } = usePaymentMethods();
   const { data: cart, isLoading: cartLoading } = useCart();
+
+  useEffect(() => {
+    if (!storedEmail) return;
+    const currentEmail = form.getValues("email").trim();
+    if (!currentEmail) {
+      form.setValue("email", storedEmail, { shouldValidate: true });
+    }
+  }, [form, storedEmail]);
 
   useEffect(() => {
     const token = getStoredToken();
@@ -412,6 +429,12 @@ const Checkout = () => {
     if (!summaryItems.length) {
       toast.error("Add at least one product to your bag before paying.");
       return;
+    }
+    if (storedEmail) {
+      const currentEmail = form.getValues("email").trim();
+      if (!currentEmail) {
+        form.setValue("email", storedEmail, { shouldValidate: true });
+      }
     }
     const isValid = await form.trigger();
     if (!isValid) {
@@ -787,6 +810,12 @@ const Checkout = () => {
                       type="button"
                       className="mt-3 w-full sm:mt-0 sm:w-auto"
                       onClick={async () => {
+                        if (storedEmail) {
+                          const currentEmail = form.getValues("email").trim();
+                          if (!currentEmail) {
+                            form.setValue("email", storedEmail, { shouldValidate: true });
+                          }
+                        }
                         const isValid = await form.trigger();
                         if (!isValid) {
                           const missingField = getFirstErrorLabel(form.formState.errors);
