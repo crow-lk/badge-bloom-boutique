@@ -37,6 +37,7 @@ export type InitiatePaymentInput = {
   customer: PaymentCustomerInput;
   items_description?: string;
   session_id?: string | null;
+  shipping_total?: number;
   return_url?: string;
   cancel_url?: string;
   notify_url?: string;
@@ -89,6 +90,7 @@ export type StoredPayHereCheckout = {
   payment_method_id: number | string;
   shipping: CheckoutAddress;
   billing?: CheckoutAddress | null;
+  shipping_total?: number;
   notes?: string;
   currency?: string;
   session_id?: string | null;
