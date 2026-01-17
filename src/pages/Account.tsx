@@ -58,22 +58,22 @@ const Account = () => {
     const base = { ...defaultState };
     const next: AddressFormState = address
       ? {
-          id: address.id,
-          label: address.label ?? "Home",
-          recipientName: address.recipient_name ?? "",
-          phone: address.phone ?? "",
-          addressLine1: address.address_line1 ?? "",
-          addressLine2: address.address_line2 ?? "",
-          city: address.city ?? "",
-          state: address.state ?? "",
-          postalCode: address.postal_code ?? "",
-          country: address.country ?? "",
-          isDefault: Boolean(address.is_default),
-        }
+        id: address.id,
+        label: address.label ?? "Home",
+        recipientName: address.recipient_name ?? "",
+        phone: address.phone ?? "",
+        addressLine1: address.address_line1 ?? "",
+        addressLine2: address.address_line2 ?? "",
+        city: address.city ?? "",
+        state: address.state ?? "",
+        postalCode: address.postal_code ?? "",
+        country: address.country ?? "",
+        isDefault: Boolean(address.is_default),
+      }
       : {
-          ...base,
-          recipientName: (user?.name as string) || "",
-        };
+        ...base,
+        recipientName: (user?.name as string) || "",
+      };
     setFormState(next);
   };
 
@@ -211,7 +211,7 @@ const Account = () => {
                       id="recipientName"
                       value={formState.recipientName}
                       onChange={handleChange("recipientName")}
-                      placeholder="Aaliya Noor"
+                      placeholder="Olivia Perera"
                       autoComplete="name"
                       required
                     />
@@ -237,7 +237,7 @@ const Account = () => {
                     id="addressLine1"
                     value={formState.addressLine1}
                     onChange={handleChange("addressLine1")}
-                    placeholder="123 Galle Road"
+                    placeholder="45 Flower Road"
                     autoComplete="address-line1"
                     required
                   />
@@ -248,7 +248,7 @@ const Account = () => {
                     id="addressLine2"
                     value={formState.addressLine2}
                     onChange={handleChange("addressLine2")}
-                    placeholder="Apartment, suite, etc."
+                    placeholder="Colombo 07"
                     autoComplete="address-line2"
                   />
                 </div>
@@ -285,7 +285,7 @@ const Account = () => {
                       id="postalCode"
                       value={formState.postalCode}
                       onChange={handleChange("postalCode")}
-                      placeholder="00100"
+                      placeholder="00700"
                       autoComplete="postal-code"
                       required
                     />
@@ -341,9 +341,8 @@ const Account = () => {
                     {addresses.map((address) => (
                       <div
                         key={address.id}
-                        className={`rounded-xl border p-4 ${
-                          address.is_default ? "border-primary/60 bg-primary/5" : "border-border/70 bg-card/60"
-                        }`}
+                        className={`rounded-xl border p-4 ${address.is_default ? "border-primary/60 bg-primary/5" : "border-border/70 bg-card/60"
+                          }`}
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="space-y-1">
