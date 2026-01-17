@@ -12,8 +12,8 @@ import { fallbackProducts, getProductDisplayPrice, useProducts, type Product } f
 import { getStoredToken } from "@/lib/auth";
 import { addCartItem } from "@/lib/cart";
 import { cn } from "@/lib/utils";
-import { ArrowLeft, ArrowRight, Check, Heart, ShieldCheck, Sparkles, Truck } from "lucide-react";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { ArrowLeft, ArrowRight, Check, ChevronLeft, ChevronRight, Heart, ShieldCheck, Sparkles, Truck } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -28,6 +28,11 @@ const ProductDetail = () => {
   const location = useLocation();
   const queryClient = useQueryClient();
   const [adding, setAdding] = useState(false);
+
+  const touchStartX = useRef<number | null>(null);
+  const touchEndX = useRef<number | null>(null);
+
+  const SWIPE_THRESHOLD = 50;
 
   const products = useMemo(() => {
     if (data?.length) return data;
@@ -161,6 +166,35 @@ const ProductDetail = () => {
     window.open(whatsappLink, "_blank", "noopener");
   };
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    if (touchStartX.current === null || touchEndX.current === null) return;
+
+    const distance = touchStartX.current - touchEndX.current;
+
+    if (Math.abs(distance) < SWIPE_THRESHOLD) return;
+
+    if (distance > 0 && canGoNext) {
+      // swipe left → next
+      setFlipDirection("forward");
+      setCurrentImageIndex((i) => Math.min(i + 1, product.images.length - 1));
+    } else if (distance < 0 && canGoPrev) {
+      // swipe right → prev
+      setFlipDirection("backward");
+      setCurrentImageIndex((i) => Math.max(i - 1, 0));
+    }
+
+    touchStartX.current = null;
+    touchEndX.current = null;
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Navbar />
@@ -208,7 +242,12 @@ const ProductDetail = () => {
             <div className="space-y-3">
               <Card className="mx-auto w-full max-w-[480px] overflow-hidden border-0 bg-card shadow-sm md:max-w-[520px]">
                 <div className="relative">
-                  <div className="aspect-[4/5] w-full max-h-[520px] overflow-hidden bg-muted relative [perspective:1400px]">
+                  <div
+                    className="aspect-[4/5] w-full max-h-[520px] overflow-hidden bg-muted relative [perspective:1400px] touch-pan-y"
+                    onTouchStart={handleTouchStart}
+                    onTouchMove={handleTouchMove}
+                    onTouchEnd={handleTouchEnd}
+                  >
                     <img
                       key={heroImage}
                       src={heroImage}
@@ -226,7 +265,7 @@ const ProductDetail = () => {
                           onClick={() => goToIndex(currentImageIndex - 1)}
                           aria-label="Previous image"
                         >
-                          <ArrowLeft className="h-5 w-5" />
+                          <ChevronLeft className="h-5 w-5" />
                         </button>
                       ) : (
                         <span className="h-10 w-10" aria-hidden />
@@ -238,7 +277,7 @@ const ProductDetail = () => {
                           onClick={() => goToIndex(currentImageIndex + 1)}
                           aria-label="Next image"
                         >
-                          <ArrowRight className="h-5 w-5" />
+                          <ChevronRight className="h-5 w-5" />
                         </button>
                       ) : (
                         <span className="h-10 w-10" aria-hidden />
@@ -265,15 +304,15 @@ const ProductDetail = () => {
                       type="button"
                       onClick={() => goToIndex(index)}
                       aria-pressed={currentImageIndex === index}
-                    className={cn(
-                      "group flex-shrink-0 snap-start overflow-hidden rounded-md border border-border bg-muted transition hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                      currentImageIndex === index && "ring-2 ring-primary ring-offset-2 ring-offset-background",
-                    )}
-                    aria-label={`View image ${index + 1}`}
-                  >
-                    <img
-                      src={image}
-                      alt={`${product.name} alt ${index + 1}`}
+                      className={cn(
+                        "group flex-shrink-0 snap-start overflow-hidden rounded-md border border-border bg-muted transition hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                        currentImageIndex === index && "ring-2 ring-primary ring-offset-2 ring-offset-background",
+                      )}
+                      aria-label={`View image ${index + 1}`}
+                    >
+                      <img
+                        src={image}
+                        alt={`${product.name} alt ${index + 1}`}
                         className="h-14 w-14 object-cover transition duration-300 group-hover:scale-105 sm:h-16 sm:w-16 md:h-20 md:w-20"
                       />
                     </button>
