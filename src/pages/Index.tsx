@@ -127,7 +127,7 @@ const Index = () => {
             </div>
           </div>
 
-          <div className="w-full max-w-[720px] lg:max-w-none lg:order-1">
+          <div className="w-4/5 max-w-[720px] lg:max-w-none lg:order-1">
             <div className="overflow-hidden rounded-3xl border border-border/70 bg-muted h-full">
               <img
                 src={spotlight.images?.[0] ?? spotlight.image}
