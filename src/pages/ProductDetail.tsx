@@ -376,12 +376,12 @@ const ProductDetail = () => {
               <Separator />
 
               <div className="grid gap-3 md:grid-cols-2">
-                <Spec label="SKU prefix" value={displayValue(product.sku_prefix)} />
-                <Spec label="Category" value={displayValue(product.category_id)} />
-                <Spec label="Collection" value={displayValue(product.collection_id)} />
+                {/* <Spec label="SKU prefix" value={displayValue(product.sku_prefix)} />
+                <Spec label="Category" value={displayValue(product.category_id)} /> */}
+                <Spec label="Collection" value={displayValue(product.collection_name)} />
                 <Spec label="Season" value={displayValue(product.season, "Seasonless")} />
-                <Spec label="HS code" value={displayValue(product.hs_code)} />
-                <Spec label="Default tax ID" value={displayValue(product.default_tax_id)} />
+                {/* <Spec label="HS code" value={displayValue(product.hs_code)} />
+                <Spec label="Default tax ID" value={displayValue(product.default_tax_id)} /> */}
               </div>
 
               <div className="rounded-lg border border-border bg-muted/30 p-3">

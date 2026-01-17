@@ -16,6 +16,7 @@ export type ApiProduct = {
   brand_id?: string | number | null;
   category_id?: string | number | null;
   collection_id?: string | number | null;
+  collection_name?: string | null;
   season?: string | null;
   description?: string | null;
   care_instructions?: string | null;
@@ -46,6 +47,7 @@ export type Product = {
   brand_id?: string | number | null;
   category_id?: string | number | null;
   collection_id?: string | number | null;
+  collection_name?: string | null;
   season?: string | null;
   description?: string | null;
   care_instructions?: string | null;
@@ -68,11 +70,11 @@ const formatPrice = (value?: number | null) =>
   value == null
     ? "Price on request"
     : new Intl.NumberFormat("en-LK", {
-        style: "currency",
-        currency: "LKR",
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      }).format(value);
+      style: "currency",
+      currency: "LKR",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value);
 
 const buildGallery = (index: number) =>
   Array.from({ length: 4 }, (_, offset) => fallbackImages[(index + offset) % fallbackImages.length]);
@@ -117,6 +119,7 @@ const normalizeProduct = (product: ApiProduct, index: number): Product => {
     brand_id: product.brand_id,
     category_id: product.category_id,
     collection_id: product.collection_id,
+    collection_name: product.collection_name,
     season: product.season,
     description: product.description ?? "Description coming soon.",
     care_instructions: product.care_instructions ?? "Care instructions coming soon.",
