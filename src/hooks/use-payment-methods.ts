@@ -4,7 +4,13 @@ import { useQuery } from "@tanstack/react-query";
 export const usePaymentMethods = () =>
   useQuery<PaymentMethod[]>({
     queryKey: ["payment-methods"],
-    queryFn: fetchPaymentMethods,
+    queryFn: async () => {
+      const methods = await fetchPaymentMethods();
+
+      // ✅ ONLY ACTIVE METHODS
+      return methods.filter((method) => method.active === true);
+    },
     staleTime: 1000 * 60 * 5,
     retry: 1,
   });
+
