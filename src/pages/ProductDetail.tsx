@@ -267,6 +267,34 @@ const ProductDetail = () => {
     }
   };
 
+  const handleBuyNow = async () => {
+    if (inquiryOnly) return;
+
+    if (!requireAuth()) return;
+
+    const selectedVariant = getSelectedVariant();
+    const variantId = selectedVariant?.id || product.id;
+
+    if (!variantId) {
+      toast.error("Unable to proceed - missing variant information");
+      return;
+    }
+
+    setAdding(true);
+    try {
+      await addCartItem(variantId, quantity);
+      await queryClient.invalidateQueries({ queryKey: ["cart"] });
+
+      // 👇 go straight to checkout
+      navigate("/checkout");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to proceed to checkout.";
+      toast.error(message);
+    } finally {
+      setAdding(false);
+    }
+  };
+
   const handleEnquire = () => {
     if (!requireAuth()) return;
     window.location.href = mailtoLink;
@@ -529,6 +557,14 @@ const ProductDetail = () => {
                     disabled={adding}
                   >
                     {adding ? "Adding..." : "Add to bag"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1 h-11 text-sm md:h-12 border-border bg-transparent/20 hover:bg-muted"
+                    onClick={handleBuyNow}
+                    disabled={adding}
+                  >
+                    Buy now
                   </Button>
                   <Button variant="outline" size="icon" className="h-11 w-11 md:h-12 md:w-12">
                     <Heart className="h-4 w-4" />
