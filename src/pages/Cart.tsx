@@ -10,16 +10,24 @@ import { updateCartItem, removeCartItem } from "@/lib/cart";
 import { getStoredToken } from "@/lib/auth";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const Cart = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [updatingId, setUpdatingId] = useState<number | string | null>(null);
   const [removingId, setRemovingId] = useState<number | string | null>(null);
+  const [selectedSizes, setSelectedSizes] = useState<Record<number | string, string>>({});
 
   const { data: cart, isLoading } = useCart();
   const { data: productData } = useProducts();
-  const cartItems = cart?.items ?? [];
+  const cartItems = useMemo(() => cart?.items ?? [], [cart?.items]);
   const normalizedEntries = useMemo(
     () =>
       cartItems.map((item) => {
@@ -39,6 +47,7 @@ const Cart = () => {
     () =>
       normalizedEntries.map((entry) => {
         const product = productLookup.get(entry.productId ?? entry.id);
+        
         return {
           ...entry,
           image: entry.image ?? product?.images?.[0],
@@ -65,6 +74,46 @@ const Cart = () => {
       return;
     }
     navigate("/checkout");
+  };
+
+  const getAvailableVariants = (product: Product | undefined) => {
+    if (!product?.variants) return [];
+    return product.variants.filter(v => v.status === 'active' && v.quantity > 0);
+  };
+
+  const getAvailableQuantityForSize = (product: Product | undefined, sizeName?: string) => {
+    if (!product?.variants || !sizeName) return 0;
+    const variant = product.variants.find(v => v.size_name === sizeName);
+    return variant?.quantity ?? 0;
+  };
+
+  const handleSizeChange = async (itemId: number | string, cartItemId: number | string | undefined, newSize: string, productVariantId: number | string) => {
+    if (updatingId) return;
+    if (!cartItemId) {
+      toast.error("Unable to update: cart item ID missing");
+      return;
+    }
+    
+    setSelectedSizes(prev => ({ ...prev, [itemId]: newSize }));
+    
+    setUpdatingId(itemId);
+    try {
+      // Update the cart item with the new variant
+      await updateCartItem(cartItemId, undefined, productVariantId);
+      await queryClient.invalidateQueries({ queryKey: ["cart"] });
+      toast.success("Size updated");
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to update size";
+      toast.error(errorMessage);
+      // Revert the selected size
+      setSelectedSizes(prev => {
+        const updated = { ...prev };
+        delete updated[itemId];
+        return updated;
+      });
+    } finally {
+      setUpdatingId(null);
+    }
   };
 
   return (
@@ -101,6 +150,7 @@ const Cart = () => {
                     <thead className="bg-background/70 text-[10px] uppercase tracking-[0.35em] text-muted-foreground">
                       <tr>
                         <th className="px-3 py-3 text-left">Product</th>
+                        <th className="px-3 py-3 text-left">Size</th>
                         <th className="px-3 py-3 text-left">Unit price</th>
                         <th className="px-3 py-3 text-left">Quantity</th>
                         <th className="px-3 py-3 text-left">Line total</th>
@@ -110,6 +160,11 @@ const Cart = () => {
                     <tbody className="divide-y divide-border">
                       {cartEntries.map((item) => {
                         const lineTotal = item.lineTotal;
+                        const product = productLookup.get(item.productId ?? item.id);
+                        const availableVariants = getAvailableVariants(product);
+                        const currentSize = selectedSizes[item.id] || item.sizeName;
+                        const currentVariantQuantity = getAvailableQuantityForSize(product, currentSize);
+                        
                         return (
                           <tr key={`${item.id}`} className="bg-card/60">
                             <td className="px-3 py-3 align-top">
@@ -136,6 +191,41 @@ const Cart = () => {
                               </div>
                             </td>
                             <td className="px-3 py-3 align-top">
+                              {availableVariants.length > 0 ? (
+                                <div className="flex flex-col gap-2">
+                                  <Select
+                                    value={currentSize || ""}
+                                    onValueChange={(sizeValue) => {
+                                      const selectedVariant = availableVariants.find(v => v.size_name === sizeValue);
+                                      if (selectedVariant?.id) {
+                                        handleSizeChange(item.id, item.cartItemId, sizeValue, selectedVariant.id);
+                                      }
+                                    }}
+                                    disabled={updatingId === item.id}
+                                  >
+                                    <SelectTrigger className="h-8 w-24 text-[10px]">
+                                      <SelectValue placeholder="Select size" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {availableVariants.map((variant) => (
+                                        <SelectItem
+                                          key={`${item.id}-${variant.size_name}`}
+                                          value={variant.size_name || ""}
+                                        >
+                                          {variant.size_name} ({variant.quantity})
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <p className="text-[10px] text-muted-foreground">
+                                    Available: {currentVariantQuantity}
+                                  </p>
+                                </div>
+                              ) : (
+                                <p className="text-[11px] text-muted-foreground">No sizes</p>
+                              )}
+                            </td>
+                            <td className="px-3 py-3 align-top">
                               {item.price != null
                                 ? formatCartCurrency(item.price, cart?.currency ?? "LKR")
                                 : "Price on request"}
@@ -150,7 +240,7 @@ const Cart = () => {
                                     if (item.quantity <= 1) return;
                                     setUpdatingId(item.id);
                                     try {
-                                      await updateCartItem(item.id, item.quantity - 1);
+                                      await updateCartItem(item.cartItemId || item.id, item.quantity - 1);
                                       await queryClient.invalidateQueries({ queryKey: ["cart"] });
                                     } catch {
                                       // ignore
@@ -162,15 +252,19 @@ const Cart = () => {
                                 >
                                   -
                                 </button>
-                                <span className="w-8 text-center font-mono text-xs">{item.quantity}</span>
+                                <span className="inline-flex h-8 w-8 items-center justify-center font-mono text-xs">{item.quantity}</span>
                                 <button
                                   type="button"
                                   className="flex h-8 w-8 items-center justify-center rounded-full bg-muted px-1 font-semibold transition hover:bg-muted/80"
                                   onClick={async () => {
                                     if (updatingId) return;
+                                    if (item.quantity >= currentVariantQuantity) {
+                                      toast.error(`Maximum available quantity is ${currentVariantQuantity}`);
+                                      return;
+                                    }
                                     setUpdatingId(item.id);
                                     try {
-                                      await updateCartItem(item.id, item.quantity + 1);
+                                      await updateCartItem(item.cartItemId || item.id, item.quantity + 1);
                                       await queryClient.invalidateQueries({ queryKey: ["cart"] });
                                     } catch {
                                       // ignore
@@ -178,7 +272,7 @@ const Cart = () => {
                                       setUpdatingId(null);
                                     }
                                   }}
-                                  disabled={updatingId === item.id}
+                                  disabled={updatingId === item.id || item.quantity >= currentVariantQuantity}
                                 >
                                   +
                                 </button>
@@ -194,7 +288,7 @@ const Cart = () => {
                                   if (removingId) return;
                                   setRemovingId(item.id);
                                   try {
-                                    await removeCartItem(item.id);
+                                    await removeCartItem(item.cartItemId || item.id);
                                     await queryClient.invalidateQueries({ queryKey: ["cart"] });
                                   } catch {
                                     // ignore

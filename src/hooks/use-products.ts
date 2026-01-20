@@ -7,6 +7,16 @@ import { useQuery } from "@tanstack/react-query";
 
 const fallbackImages = [tshirtImage, pantsImage, coatImage, sweaterImage];
 
+export type ProductVariant = {
+  id: number | string;
+  sku?: string;
+  size_id?: number | string;
+  size_name?: string;
+  selling_price?: number | null;
+  quantity: number;
+  status?: string;
+};
+
 export type ApiProduct = {
   id: number;
   name: string;
@@ -29,6 +39,7 @@ export type ApiProduct = {
   images?: string[] | null;
   inquiry_only?: boolean;
   show_price_inquiry_mode?: boolean;
+  variants?: ProductVariant[];
 };
 
 export type Product = {
@@ -40,6 +51,7 @@ export type Product = {
   image: string;
   images: string[];
   sizes: string[];
+  variants?: ProductVariant[];
   status: string;
   inquiryOnly: boolean;
   showPriceInquiryMode: boolean;
@@ -112,6 +124,7 @@ const normalizeProduct = (product: ApiProduct, index: number): Product => {
     image: gallery[0],
     images: gallery,
     sizes,
+    variants: product.variants,
     status: product.status ?? "active",
     inquiryOnly,
     showPriceInquiryMode,
