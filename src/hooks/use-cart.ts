@@ -11,6 +11,10 @@ export type CartLine = {
   productId?: number | string;
   lineTotal?: number;
   unitPrice?: number;
+  productVariantId?: number | string;
+  sizeId?: number | string;
+  sizeName?: string;
+  cartItemId?: number | string; // The actual database cart item ID
 };
 
 export type CartState = {
@@ -91,21 +95,26 @@ const normalizeCartItem = (item: unknown): CartLine => {
     toStringValue(entry.variant ?? entry.variant_sku ?? entry.color) ??
     undefined;
 
+  const cartItemId = entry.id ?? entry.cart_item_id ?? entry.item_id;
+
   return {
-    id:
-      entry.id ??
-      entry.cart_item_id ??
-      entry.item_id ??
+    id: String(
+      cartItemId ??
       entry.product_variant_id ??
       entry.product_id ??
       product.id ??
-      `${fallbackName}-${Math.random().toString(36).slice(2, 8)}`,
+      `${fallbackName}-${Math.random().toString(36).slice(2, 8)}`
+    ),
     name: String(fallbackName),
     quantity,
     price: unitPrice,
     unitPrice,
     lineTotal,
-    productId: entry.product_id ?? product.id,
+    cartItemId: cartItemId as number | string | undefined,
+    productId: (entry.product_id ?? product.id) as number | string,
+    productVariantId: (entry.product_variant_id ?? product.product_variant_id) as number | string | undefined,
+    sizeId: (entry.size_id ?? variant.size_id) as number | string | undefined,
+    sizeName: (entry.size_name ?? variant.size_name ?? entry.size) as string | undefined,
     image: normalizedImage,
     variant: variantLabel,
   };
@@ -180,6 +189,6 @@ export const useCart = () =>
     queryKey: ["cart"],
     queryFn: async () => buildState(await fetchCart()),
     staleTime: 1000 * 30,
-    cacheTime: 1000 * 60,
+    gcTime: 1000 * 60,
     retry: 1,
   });

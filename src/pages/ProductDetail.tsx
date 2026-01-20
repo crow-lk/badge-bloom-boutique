@@ -28,6 +28,8 @@ const ProductDetail = () => {
   const location = useLocation();
   const queryClient = useQueryClient();
   const [adding, setAdding] = useState(false);
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [quantity, setQuantity] = useState(1);
 
   const touchStartX = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
@@ -56,12 +58,81 @@ const ProductDetail = () => {
     if (product?.images?.length) {
       setCurrentImageIndex(0);
       setFlipDirection("forward");
+      // Initialize selected size to the first available size
+      // This will be set after availableSizes is computed
+      setQuantity(1);
     }
   }, [product]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [slug]);
+
+  // Get all sizes (both available and unavailable)
+  const allSizes = useMemo(() => {
+    if (!product?.variants?.length) {
+      return product?.sizes ?? [];
+    }
+    return product.variants
+      .map((v) => v.size_name || v.size_id?.toString() || "")
+      .filter(Boolean);
+  }, [product?.variants, product?.sizes]);
+
+  // Check if a size is available (has stock)
+  const isSizeAvailable = (size: string): boolean => {
+    if (!product?.variants?.length) return true;
+    const variant = product.variants.find(
+      (v) => (v.size_name || v.size_id?.toString() || "") === size,
+    );
+    return variant ? variant.quantity > 0 : true;
+  };
+
+  // Get available quantity for selected size
+  const getMaxQuantityForSize = (size: string): number => {
+    if (!product?.variants?.length) return 999;
+    const variant = product.variants.find(
+      (v) => (v.size_name || v.size_id?.toString() || "") === size,
+    );
+    return variant?.quantity ?? 999;
+  };
+
+  const maxQuantity = selectedSize ? getMaxQuantityForSize(selectedSize) : 999;
+
+  // Set selectedSize to first available size when product changes
+  useEffect(() => {
+    if (allSizes.length > 0 && !selectedSize) {
+      const firstAvailable = allSizes.find((size) => isSizeAvailable(size));
+      setSelectedSize(firstAvailable || allSizes[0]);
+    }
+  }, [allSizes, selectedSize]);
+
+  // Get price based on selected variant or default product price
+  const getSelectedVariant = () => {
+    if (selectedSize && product?.variants?.length) {
+      return product.variants.find(
+        (v) => v.size_name === selectedSize || v.size_id?.toString() === selectedSize,
+      );
+    }
+    return undefined;
+  };
+
+  const getSelectedPrice = () => {
+    const variant = getSelectedVariant();
+    if (variant?.selling_price !== undefined && variant?.selling_price !== null) {
+      return variant.selling_price;
+    }
+    return product?.price ?? null;
+  };
+
+  const selectedPrice = getSelectedPrice();
+  const selectedPriceLabel = selectedPrice == null 
+    ? "Price on request"
+    : new Intl.NumberFormat("en-LK", {
+        style: "currency",
+        currency: "LKR",
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(selectedPrice);
 
   const relatedProducts = useMemo(
     () => (product ? products.filter((item) => item.slug !== product.slug).slice(0, 3) : []),
@@ -70,13 +141,33 @@ const ProductDetail = () => {
 
   const showLoading = isLoading && !product;
 
+  // Get first variant price for loading state
+  const getFirstVariantPrice = () => {
+    if (!products.length) return null;
+    const firstProduct = products[0];
+    if (firstProduct.variants?.length && firstProduct.variants[0].selling_price !== undefined) {
+      return firstProduct.variants[0].selling_price;
+    }
+    return firstProduct.price;
+  };
+
+  const firstVariantPrice = getFirstVariantPrice();
+  const firstVariantPriceLabel = firstVariantPrice == null 
+    ? "Price on request"
+    : new Intl.NumberFormat("en-LK", {
+        style: "currency",
+        currency: "LKR",
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(firstVariantPrice);
+
   if (showLoading) {
     return (
       <div className="min-h-screen bg-background text-foreground">
         <Navbar />
         <main className="pt-24 pb-12">
           <div className="container mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 space-y-10">
-            <ProductDetailSkeleton />
+            <ProductDetailSkeleton priceLabel={firstVariantPriceLabel} />
           </div>
         </main>
         <Footer />
@@ -143,11 +234,21 @@ const ProductDetail = () => {
 
   const handleAddToBag = async () => {
     if (inquiryOnly) return;
+    
+    const selectedVariant = getSelectedVariant();
+    const variantId = selectedVariant?.id || product.id;
+    
+    if (!variantId) {
+      toast.error("Unable to add item - missing variant information");
+      return;
+    }
+
     setAdding(true);
     try {
-      await addCartItem(product.id, 1);
+      await addCartItem(variantId, quantity);
       await queryClient.invalidateQueries({ queryKey: ["cart"] });
-      toast.success("Added to bag");
+      toast.success(`Added ${quantity} item${quantity > 1 ? "s" : ""} to bag`);
+      setQuantity(1);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unable to add to bag.";
       toast.error(message);
@@ -334,10 +435,62 @@ const ProductDetail = () => {
               </div>
 
               <div className="flex flex-wrap items-center gap-4">
-                <span className="text-2xl font-light md:text-3xl">{priceDisplay}</span>
+                <span className="text-2xl font-light md:text-3xl">{selectedPriceLabel}</span>
                 <Badge variant="secondary">{brandLabel}</Badge>
                 {inquiryOnly && <Badge variant="outline">Inquiry only</Badge>}
               </div>
+
+              {!inquiryOnly && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-2 block">Size</label>
+                    <div className="flex flex-wrap gap-2">
+                      {allSizes?.map((size) => {
+                        const available = isSizeAvailable(size);
+                        return (
+                          <button
+                            key={size}
+                            onClick={() => available && setSelectedSize(size)}
+                            disabled={!available}
+                            className={cn(
+                              "px-4 py-2 rounded-md border text-sm font-medium transition-colors",
+                              selectedSize === size && available
+                                ? "border-black bg-background text-foreground"
+                                : !available
+                                  ? "border-border bg-background text-muted-foreground cursor-not-allowed line-through"
+                                  : "border-border bg-background text-foreground hover:border-primary hover:bg-muted",
+                            )}
+                          >
+                            {size}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-3 block">Quantity</label>
+                    <div className="flex w-fit items-center gap-4">
+                      <div className="flex w-fit items-center gap-4 rounded-full border border-border bg-card px-4 py-2">
+                        <button
+                          onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                          className="flex h-12 w-12 items-center justify-center rounded-full bg-muted px-2 font-semibold text-lg transition hover:bg-muted/80"
+                        >
+                          −
+                        </button>
+                        <span className="inline-flex h-12 w-12 items-center justify-center font-mono text-lg font-medium">{quantity}</span>
+                        <button
+                          onClick={() => setQuantity(Math.min(quantity + 1, maxQuantity))}
+                          className="flex h-12 w-12 items-center justify-center rounded-full bg-muted px-2 font-semibold text-lg transition hover:bg-muted/80"
+                        >
+                          +
+                        </button>
+                      </div>
+                      <span className="text-sm text-muted-foreground font-medium">Available: {maxQuantity}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {inquiryOnly ? (
                 <div className="flex flex-col gap-2.5 sm:flex-row">
@@ -376,12 +529,12 @@ const ProductDetail = () => {
               <Separator />
 
               <div className="grid gap-3 md:grid-cols-2">
-                <Spec label="SKU prefix" value={displayValue(product.sku_prefix)} />
-                <Spec label="Category" value={displayValue(product.category_id)} />
-                <Spec label="Collection" value={displayValue(product.collection_id)} />
+                {/* <Spec label="SKU prefix" value={displayValue(product.sku_prefix)} />
+                <Spec label="Category" value={displayValue(product.category_id)} /> */}
+                <Spec label="Collection" value={displayValue(product.collection_name)} />
                 <Spec label="Season" value={displayValue(product.season, "Seasonless")} />
-                <Spec label="HS code" value={displayValue(product.hs_code)} />
-                <Spec label="Default tax ID" value={displayValue(product.default_tax_id)} />
+                {/* <Spec label="HS code" value={displayValue(product.hs_code)} />
+                <Spec label="Default tax ID" value={displayValue(product.default_tax_id)} /> */}
               </div>
 
               <div className="rounded-lg border border-border bg-muted/30 p-3">
@@ -409,10 +562,10 @@ const ProductDetail = () => {
               <Card className="border-0 bg-card/80 p-5 shadow-sm backdrop-blur md:p-6">
                 <div className="grid gap-3 md:grid-cols-3">
                   <Detail title="Material" value={displayValue(materialDetails)} />
-                  <Detail title="Brand" value={displayValue(product.brand_id, "Aaliyaa Atelier")} />
-                  <Detail title="Category" value={displayValue(product.category_id)} />
+                  {/* <Detail title="Brand" value={displayValue(product.brand_id, "Aaliyaa Atelier")} />
+                  <Detail title="Category" value={displayValue(product.category_id)} /> */}
                   <Detail title="Season" value={displayValue(product.season, "Seasonless")} />
-                  <Detail title="Collection" value={displayValue(product.collection_id)} />
+                  <Detail title="Collection" value={displayValue(product.collection_name)} />
                   <Detail title="Status" value={displayValue(product.status)} />
                 </div>
                 <Separator className="my-4" />
@@ -538,7 +691,7 @@ const LogisticsItem = ({
   </div>
 );
 
-const ProductDetailSkeleton = () => (
+const ProductDetailSkeleton = ({ priceLabel }: { priceLabel?: string }) => (
   <div className="grid items-start gap-8 lg:grid-cols-[1.05fr_0.95fr]">
     <div className="space-y-3">
       <Card className="mx-auto w-full max-w-[480px] overflow-hidden border-0 bg-card shadow-sm md:max-w-[520px]">
@@ -559,8 +712,17 @@ const ProductDetailSkeleton = () => (
       <Skeleton className="h-16 w-full" />
 
       <div className="flex items-center gap-3">
-        <Skeleton className="h-9 w-28" />
-        <Skeleton className="h-6 w-20" />
+        {priceLabel ? (
+          <>
+            <span className="text-2xl font-light md:text-3xl">{priceLabel}</span>
+            <Skeleton className="h-6 w-20" />
+          </>
+        ) : (
+          <>
+            <Skeleton className="h-9 w-28" />
+            <Skeleton className="h-6 w-20" />
+          </>
+        )}
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">

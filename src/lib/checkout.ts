@@ -7,6 +7,7 @@ export type PaymentMethod = {
   slug?: string | null;
   provider?: string | null;
   type?: string | null;
+  icon_path?: string | null;
   instructions?: string | null;
   description?: string | null;
   logo?: string | null;
@@ -36,6 +37,7 @@ export type InitiatePaymentInput = {
   customer: PaymentCustomerInput;
   items_description?: string;
   session_id?: string | null;
+  shipping_total?: number;
   return_url?: string;
   cancel_url?: string;
   notify_url?: string;
@@ -88,6 +90,7 @@ export type StoredPayHereCheckout = {
   payment_method_id: number | string;
   shipping: CheckoutAddress;
   billing?: CheckoutAddress | null;
+  shipping_total?: number;
   notes?: string;
   currency?: string;
   session_id?: string | null;
@@ -162,19 +165,28 @@ export const initiatePayment = async (
   return (await response.json()) as InitiatePaymentResponse;
 };
 
-export const placeOrder = async (input: PlaceOrderInput): Promise<PlaceOrderResponse> => {
+export const placeOrder = async (
+  input: PlaceOrderInput
+): Promise<PlaceOrderResponse> => {
   const { token, sessionId } = resolveCheckoutContext();
+
   const response = await fetch(`${API_BASE_URL}/api/checkout/orders`, {
     method: "POST",
-    headers: authHeaders(token),
+    headers: {
+      ...authHeaders(token),
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
     body: JSON.stringify({
       ...input,
       session_id: input.session_id ?? sessionId ?? undefined,
     }),
   });
+
   if (!response.ok) {
     await parseError(response);
   }
+
   return (await response.json()) as PlaceOrderResponse;
 };
 

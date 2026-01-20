@@ -10,7 +10,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { formatCartCurrency, useCart } from "@/hooks/use-cart";
 import { usePaymentMethods } from "@/hooks/use-payment-methods";
-import { getStoredToken } from "@/lib/auth";
+import { API_BASE_URL, getStoredToken, getStoredUser } from "@/lib/auth";
 import {
   initiatePayment,
   placeOrder,
@@ -33,6 +33,13 @@ import { ArrowLeft, ArrowRight, Gift, Loader2, ShieldCheck } from "lucide-react"
 import { toast } from "sonner";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const checkoutSteps = [
   { id: "shipping", label: "Shipping address", detail: "Confirm contact & delivery details." },
@@ -68,6 +75,18 @@ const FALLBACK_CONTACT: ContactFormState = {
   postalCode: "00700",
   country: "Sri Lanka",
 };
+
+const provinces = [
+  "Western",
+  "Central",
+  "Southern",
+  "Northern",
+  "Eastern",
+  "North Western",
+  "North Central",
+  "Uva",
+  "Sabaragamuwa",
+];
 
 const splitRecipientName = (value?: string | null) => {
   if (!value) return { first: "", last: "" };
@@ -187,6 +206,13 @@ const normalizeRedirectCheckout = (checkout?: Record<string, unknown> | null): R
   return { actionUrl, fields };
 };
 
+const extractStoredEmail = (user: ReturnType<typeof getStoredUser>) => {
+  if (!user) return "";
+  const record = user as Record<string, unknown>;
+  const candidate = user.email ?? record.email_address ?? record.emailAddress;
+  return candidate ? String(candidate).trim() : "";
+};
+
 const RedirectCheckoutForm = ({ checkout }: { checkout: RedirectCheckout | null }) => {
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -207,12 +233,14 @@ const RedirectCheckoutForm = ({ checkout }: { checkout: RedirectCheckout | null 
 };
 
 const Checkout = () => {
+  const storedUser = useMemo(() => getStoredUser(), []);
+  const storedEmail = useMemo(() => extractStoredEmail(storedUser), [storedUser]);
   const form = useForm<ContactFormState>({
     resolver: zodResolver(contactSchema),
     defaultValues: {
       firstName: "",
       lastName: "",
-      email: "",
+      email: storedEmail,
       phone: "",
       addressLine1: "",
       addressLine2: "",
@@ -241,6 +269,14 @@ const Checkout = () => {
     isError: paymentMethodsError,
   } = usePaymentMethods();
   const { data: cart, isLoading: cartLoading } = useCart();
+
+  useEffect(() => {
+    if (!storedEmail) return;
+    const currentEmail = form.getValues("email").trim();
+    if (!currentEmail) {
+      form.setValue("email", storedEmail, { shouldValidate: true });
+    }
+  }, [form, storedEmail]);
 
   useEffect(() => {
     const token = getStoredToken();
@@ -393,6 +429,12 @@ const Checkout = () => {
     if (!summaryItems.length) {
       toast.error("Add at least one product to your bag before paying.");
       return;
+    }
+    if (storedEmail) {
+      const currentEmail = form.getValues("email").trim();
+      if (!currentEmail) {
+        form.setValue("email", storedEmail, { shouldValidate: true });
+      }
     }
     const isValid = await form.trigger();
     if (!isValid) {
@@ -659,7 +701,7 @@ const Checkout = () => {
                           name="addressLine2"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Address line 2</FormLabel>
+                              <FormLabel>Address line 2 (optional)</FormLabel>
                               <FormControl>
                                 <Input placeholder="Colombo 07" className="placeholder:text-muted-foreground/60" {...field} value={field.value ?? ""} />
                               </FormControl>
@@ -687,9 +729,27 @@ const Checkout = () => {
                             render={({ field }) => (
                               <FormItem>
                                 <FormLabel>Province</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="Western" className="placeholder:text-muted-foreground/60" {...field} value={field.value ?? ""} />
-                                </FormControl>
+                                <Select
+                                  onValueChange={field.onChange}
+                                  value={field.value ?? ""}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select province" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="Western">Western</SelectItem>
+                                    <SelectItem value="Central">Central</SelectItem>
+                                    <SelectItem value="Southern">Southern</SelectItem>
+                                    <SelectItem value="Northern">Northern</SelectItem>
+                                    <SelectItem value="Eastern">Eastern</SelectItem>
+                                    <SelectItem value="North Western">North Western</SelectItem>
+                                    <SelectItem value="North Central">North Central</SelectItem>
+                                    <SelectItem value="Uva">Uva</SelectItem>
+                                    <SelectItem value="Sabaragamuwa">Sabaragamuwa</SelectItem>
+                                  </SelectContent>
+                                </Select>
                                 <FormMessage />
                               </FormItem>
                             )}
@@ -749,7 +809,21 @@ const Checkout = () => {
                     <Button
                       type="button"
                       className="mt-3 w-full sm:mt-0 sm:w-auto"
-                      onClick={() => setActiveStep("payment")}
+                      onClick={async () => {
+                        if (storedEmail) {
+                          const currentEmail = form.getValues("email").trim();
+                          if (!currentEmail) {
+                            form.setValue("email", storedEmail, { shouldValidate: true });
+                          }
+                        }
+                        const isValid = await form.trigger();
+                        if (!isValid) {
+                          const missingField = getFirstErrorLabel(form.formState.errors);
+                          toast.error(`${missingField ?? "Contact details"} is required before proceeding.`);
+                          return;
+                        }
+                        setActiveStep("payment");
+                      }}
                     >
                       Continue to payment
                       <ArrowRight className="ml-2 h-4 w-4" />
@@ -778,6 +852,7 @@ const Checkout = () => {
                       Shipping
                     </Button>
                   </div>
+
                   {paymentMethodsLoading ? (
                     <div className="rounded-2xl border border-dashed border-border/60 bg-background/40 p-4 text-sm text-muted-foreground">
                       Loading payment methods...
@@ -787,51 +862,104 @@ const Checkout = () => {
                       Unable to load payment methods. Refresh the page or try again shortly.
                     </div>
                   ) : availablePaymentMethods.length ? (
-                    <RadioGroup value={selectedPaymentId} onValueChange={handlePaymentSelection} className="space-y-3">
-                      {availablePaymentMethods.map((method) => {
+                    <>
+                      <RadioGroup
+                        value={selectedPaymentId}
+                        onValueChange={(value) => setSelectedPaymentId(value)}
+                        className="space-y-3"
+                      >
+                        {availablePaymentMethods.map((method) => {
+                          const isSelected = String(method.id) === selectedPaymentId;
+                          const description =
+                            (method.instructions && String(method.instructions).trim()) ||
+                            (method.description && String(method.description).trim()) ||
+                            `Use ${method.name} for payment`;
+
+                          return (
+                            <label
+                              key={method.id}
+                              htmlFor={`payment-${method.id}`}
+                              className={`flex flex-col cursor-pointer gap-2 rounded-2xl border p-4 ${isSelected ? "border-foreground bg-muted/60" : "border-border/60 bg-background/60"
+                                }`}
+                            >
+                              <div className="flex items-start gap-4">
+                                <RadioGroupItem
+                                  id={`payment-${method.id}`}
+                                  value={String(method.id)}
+                                  className="mt-1"
+                                  disabled={isProcessing}
+                                />
+                                <div className="flex items-center gap-4">
+                                  <img
+                                    src={`${API_BASE_URL}/storage/${method.icon_path}`}
+                                    alt={method.name}
+                                    width={150}
+                                    height={70}
+                                    className="object-contain"
+                                  />
+
+                                  <div>
+                                    <p className="text-sm font-semibold">{method.name}</p>
+                                    {method.provider && (
+                                      <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">
+                                        {method.provider}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Description under each selected method */}
+                              {isSelected && (
+                                <div className="mt-2 rounded-2xl border border-border/60 bg-background/40 p-3 text-sm text-muted-foreground whitespace-pre-wrap">
+                                  {description}
+                                </div>
+                              )}
+                            </label>
+                          );
+                        })}
+                      </RadioGroup>
+                      {/* Show selected method description */}
+                      {/* {selectedPaymentId && (() => {
+                        const method = availablePaymentMethods.find((m) => String(m.id) === selectedPaymentId);
+                        if (!method) return null;
                         const description =
                           (method.instructions && String(method.instructions).trim()) ||
                           (method.description && String(method.description).trim()) ||
                           `Use ${method.name} for payment`;
                         return (
-                          <label
-                            key={method.id}
-                            htmlFor={`payment-${method.id}`}
-                            className={`flex cursor-pointer items-start gap-4 rounded-2xl border p-4 ${String(method.id) === selectedPaymentId ? "border-foreground bg-muted/60" : "border-border/60 bg-background/60"
-                              }`}
-                          >
-                            <RadioGroupItem
-                              id={`payment-${method.id}`}
-                              value={String(method.id)}
-                              className="mt-1"
-                              disabled={isProcessing}
-                            />
-                            <div>
-                              <p className="text-sm font-semibold">{method.name}</p>
-                              {method.provider && (
-                                <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">{method.provider}</p>
-                              )}
-                              <p className="mt-1 text-sm text-muted-foreground">{description}</p>
-                              {processingPaymentId === String(method.id) && (
-                                <p className="mt-2 flex items-center text-xs text-muted-foreground">
-                                  <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                                  Contacting gateway…
-                                </p>
-                              )}
-                            </div>
-                          </label>
+                          <div className="rounded-2xl border border-border/60 bg-background/40 p-4 text-sm text-muted-foreground whitespace-pre-wrap">
+                            {description}
+                          </div>
                         );
-                      })}
-                    </RadioGroup>
+                      })()} */}
+
+                      {/* Start Payment Button */}
+                      {selectedPaymentId && (
+                        <Button
+                          type="button"
+                          className="mt-4 w-full"
+                          disabled={isProcessing}
+                          onClick={() => handlePaymentSelection(selectedPaymentId)}
+                        >
+                          {isProcessing ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Processing...
+                            </>
+                          ) : (
+                            "Complete Order"
+                          )}
+                        </Button>
+                      )}
+                    </>
                   ) : (
                     <div className="rounded-2xl border border-dashed border-border/60 bg-background/40 p-4 text-sm text-muted-foreground">
                       No payment methods are available yet. Configure them in the admin portal to enable checkout.
                     </div>
                   )}
-                  <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">
-                    Selecting a method will immediately start your payment.
-                  </p>
-                  <div className="space-y-2">
+
+                  <div className="space-y-2 mt-4">
                     <Label htmlFor="order-notes">Order notes</Label>
                     <Textarea
                       id="order-notes"
@@ -840,6 +968,7 @@ const Checkout = () => {
                       onChange={(event) => setNotes(event.target.value)}
                     />
                   </div>
+
                   {processingPaymentId && (
                     <div className="flex items-center gap-3 rounded-2xl border border-dashed border-border/60 bg-background/50 p-4 text-sm text-muted-foreground">
                       <Loader2 className="h-4 w-4 animate-spin" />

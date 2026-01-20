@@ -127,14 +127,22 @@ export const fetchCart = async () =>
     }),
   );
 
-export const updateCartItem = async (cartItemId: number | string, quantity: number) =>
-  requestWithSession(({ token, sessionId }) =>
-    fetch(attachSessionQuery(`${API_BASE_URL}/api/cart/items/${cartItemId}`, sessionId), {
+export const updateCartItem = async (
+  cartItemId: number | string,
+  quantity?: number,
+  productVariantId?: number | string
+) =>
+  requestWithSession(({ token, sessionId }) => {
+    const body: Record<string, unknown> = { session_id: sessionId ?? undefined };
+    if (quantity !== undefined) body.quantity = quantity;
+    if (productVariantId !== undefined) body.product_variant_id = productVariantId;
+    
+    return fetch(attachSessionQuery(`${API_BASE_URL}/api/cart/items/${cartItemId}`, sessionId), {
       method: "PUT",
       headers: cartHeaders(token ?? undefined),
-      body: JSON.stringify({ quantity, session_id: sessionId ?? undefined }),
-    }),
-  );
+      body: JSON.stringify(body),
+    });
+  });
 
 export const removeCartItem = async (cartItemId: number | string) =>
   requestWithSession(({ token, sessionId }) =>
