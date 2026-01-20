@@ -1,4 +1,4 @@
-import logo from "@/assets/logo.jpeg";
+import logo from "@/assets/aaliyaa_logo.png";
 import { fallbackProducts, getProductDisplayPrice, useProducts } from "@/hooks/use-products";
 import { clearStoredAuth, getStoredToken, getStoredUser, logout, type AuthUser } from "@/lib/auth";
 import { LogOut, Menu, Search, Settings, ShoppingBag, User, X } from "lucide-react";
@@ -95,7 +95,7 @@ const Navbar = () => {
     >
       <div className="container mx-auto flex h-full items-center px-4 sm:px-6">
         <Link to="/" className="flex items-center gap-3.5 text-foreground hover:text-primary transition-colors">
-          <img src={logo} alt="Aaliyaa logo" className="h-14 w-14 rounded-full object-cover sm:h-12 sm:w-12" />
+          <img src={logo} alt="Aaliyaa logo" className="h-[72px] w-[72px] object-contain sm:h-[64px] sm:w-[64px]" />
           <span className="hidden text-sm font-light uppercase tracking-[0.35em] sm:inline">Aaliyaa</span>
         </Link>
 

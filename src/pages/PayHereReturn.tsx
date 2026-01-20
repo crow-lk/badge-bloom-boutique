@@ -70,6 +70,7 @@ const PayHereReturn = () => {
       payment_method_id: storedCheckout.payment_method_id,
       shipping: storedCheckout.shipping,
       billing: storedCheckout.billing ?? storedCheckout.shipping,
+      shipping_total: storedCheckout.shipping_total,
       notes: storedCheckout.notes,
       currency: storedCheckout.currency,
       session_id: storedCheckout.session_id,
