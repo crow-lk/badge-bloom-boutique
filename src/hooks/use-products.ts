@@ -88,6 +88,12 @@ const formatPrice = (value?: number | null) =>
       maximumFractionDigits: 2,
     }).format(value);
 
+const getFirstVariantPrice = (variants?: ProductVariant[]) => {
+  if (!variants?.length) return null;
+  const candidate = variants.find((variant) => variant.selling_price != null);
+  return candidate?.selling_price ?? null;
+};
+
 const buildGallery = (index: number) =>
   Array.from({ length: 4 }, (_, offset) => fallbackImages[(index + offset) % fallbackImages.length]);
 
@@ -114,13 +120,15 @@ const normalizeProduct = (product: ApiProduct, index: number): Product => {
   const inquiryOnly = Boolean(product.inquiry_only);
   const showPriceInquiryMode =
     product.show_price_inquiry_mode == null ? !inquiryOnly : Boolean(product.show_price_inquiry_mode);
+  const variantPrice = getFirstVariantPrice(product.variants);
+  const resolvedPrice = product.selling_price ?? variantPrice ?? null;
 
   return {
     id: product.id,
     name: product.name ?? `Product ${product.id}`,
     slug: product.slug ?? `product-${product.id}`,
-    price: product.selling_price ?? null,
-    priceLabel: formatPrice(product.selling_price),
+    price: resolvedPrice,
+    priceLabel: formatPrice(resolvedPrice),
     image: gallery[0],
     images: gallery,
     sizes,

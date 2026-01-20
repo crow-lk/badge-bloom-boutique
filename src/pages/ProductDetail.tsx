@@ -100,20 +100,32 @@ const ProductDetail = () => {
 
   // Set selectedSize to first available size when product changes
   useEffect(() => {
-    if (allSizes.length > 0 && !selectedSize) {
+    if (selectedSize) return;
+    if (product?.variants?.length) {
+      const firstAvailableVariant =
+        product.variants.find((variant) => variant.quantity > 0) ?? product.variants[0];
+      const variantSize = firstAvailableVariant?.size_name || firstAvailableVariant?.size_id?.toString() || "";
+      if (variantSize) {
+        setSelectedSize(variantSize);
+        return;
+      }
+    }
+    if (allSizes.length > 0) {
       const firstAvailable = allSizes.find((size) => isSizeAvailable(size));
       setSelectedSize(firstAvailable || allSizes[0]);
     }
-  }, [allSizes, selectedSize]);
+  }, [allSizes, product?.variants, selectedSize]);
 
   // Get price based on selected variant or default product price
   const getSelectedVariant = () => {
-    if (selectedSize && product?.variants?.length) {
-      return product.variants.find(
+    if (!product?.variants?.length) return undefined;
+    if (selectedSize) {
+      const match = product.variants.find(
         (v) => v.size_name === selectedSize || v.size_id?.toString() === selectedSize,
       );
+      if (match) return match;
     }
-    return undefined;
+    return product.variants.find((variant) => variant.quantity > 0) ?? product.variants[0];
   };
 
   const getSelectedPrice = () => {
@@ -145,10 +157,8 @@ const ProductDetail = () => {
   const getFirstVariantPrice = () => {
     if (!products.length) return null;
     const firstProduct = products[0];
-    if (firstProduct.variants?.length && firstProduct.variants[0].selling_price !== undefined) {
-      return firstProduct.variants[0].selling_price;
-    }
-    return firstProduct.price;
+    const variantPrice = firstProduct.variants?.find((variant) => variant.selling_price != null)?.selling_price;
+    return variantPrice ?? firstProduct.price;
   };
 
   const firstVariantPrice = getFirstVariantPrice();
