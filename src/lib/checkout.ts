@@ -156,6 +156,7 @@ export const initiatePayment = async (
     headers: authHeaders(token),
     body: JSON.stringify({
       ...input,
+      shipping_total: input.shipping_total ?? 0,
       session_id: input.session_id ?? sessionId ?? undefined,
     }),
   });

@@ -27,7 +27,7 @@ import {
 } from "@/lib/shipping";
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { type FieldErrors, useForm } from "react-hook-form";
+import { type FieldErrors, useForm, useWatch } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Gift, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
@@ -136,6 +136,18 @@ const buildShippingPayload = (form: ContactFormState, isFirstAddress: boolean): 
 };
 
 const isFiniteAmount = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value);
+
+const COLOMBO_CITY_TOKEN = "colombo";
+const COLOMBO_SHIPPING_TOTAL = 0;
+const OUTSIDE_COLOMBO_SHIPPING_TOTAL = 350;
+
+const calculateShippingTotal = (city?: string | null) => {
+  const normalizedCity = (city ?? "").trim().toLowerCase();
+  if (!normalizedCity) return COLOMBO_SHIPPING_TOTAL;
+  return normalizedCity.includes(COLOMBO_CITY_TOKEN)
+    ? COLOMBO_SHIPPING_TOTAL
+    : OUTSIDE_COLOMBO_SHIPPING_TOTAL;
+};
 
 const REQUIRED_CONTACT_FIELDS: Array<{ key: keyof ContactFormState; label: string }> = [
   { key: "firstName", label: "First name" },
@@ -251,6 +263,7 @@ const Checkout = () => {
     },
     mode: "onBlur",
   });
+  const watchedCity = useWatch({ control: form.control, name: "city" });
   const [shippingAddresses, setShippingAddresses] = useState<ShippingAddress[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
   const [loadingAddresses, setLoadingAddresses] = useState(false);
@@ -408,7 +421,10 @@ const Checkout = () => {
       : serverTotal ?? derivedSubtotal
     : serverTotal ?? serverSubtotal ?? 0;
   const subtotalLabel = formatCartCurrency(subtotalValue, orderCurrency);
-  const totalLabel = formatCartCurrency(totalValue, orderCurrency);
+  const shippingTotalValue = useMemo(() => calculateShippingTotal(watchedCity), [watchedCity]);
+  const shippingLabel = formatCartCurrency(shippingTotalValue, orderCurrency);
+  const totalWithShipping = totalValue + shippingTotalValue;
+  const totalLabel = formatCartCurrency(totalWithShipping, orderCurrency);
 
   const initiatePaymentMutation = useMutation({
     mutationFn: initiatePayment,
@@ -447,6 +463,7 @@ const Checkout = () => {
     const contactForm = form.getValues();
     const shippingAddress = buildCheckoutAddressFromContact(contactForm);
     const customerPayload = buildPaymentCustomerPayload(contactForm);
+    const orderShippingTotal = calculateShippingTotal(shippingAddress.city);
     const itemsDescription =
       summaryItems.map((item) => `${item.quantity}x ${item.name}`).join(", ") || "Order payment";
 
@@ -458,6 +475,7 @@ const Checkout = () => {
         payment_method_id: method.id,
         customer: customerPayload,
         items_description: itemsDescription,
+        shipping_total: orderShippingTotal,
         return_url: isPayHere && origin ? `${origin}/payments/payhere/return` : undefined,
         cancel_url: isPayHere && origin ? `${origin}/payments/payhere/cancel` : undefined,
       });
@@ -475,6 +493,7 @@ const Checkout = () => {
             payment_method_id: method.id,
             shipping: shippingAddress,
             billing: shippingAddress,
+            shipping_total: orderShippingTotal,
             notes: notes.trim() || undefined,
             currency: orderCurrency,
             checkout: paymentResponse.checkout as Record<string, unknown>,
@@ -490,6 +509,7 @@ const Checkout = () => {
         payment_method_id: method.id,
         shipping: shippingAddress,
         billing: shippingAddress,
+        shipping_total: orderShippingTotal,
         notes: notes.trim() || undefined,
         currency: orderCurrency,
       });
@@ -938,7 +958,7 @@ const Checkout = () => {
                       {selectedPaymentId && (
                         <Button
                           type="button"
-                          className="mt-4 w-full"
+                          className="mt-4 w-full rounded-full border border-amber-500 bg-amber-400 text-amber-950 shadow-xl shadow-amber-500/30 transition hover:-translate-y-0.5 hover:bg-amber-500 focus-visible:ring-4 focus-visible:ring-amber-300"
                           disabled={isProcessing}
                           onClick={() => handlePaymentSelection(selectedPaymentId)}
                         >
@@ -1017,7 +1037,9 @@ const Checkout = () => {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Shipping</span>
-                    <span className="text-xs uppercase tracking-[0.35em] text-muted-foreground">Calculated at payment</span>
+                    <span className="font-medium">
+                      {summaryItems.length ? shippingLabel : formatCartCurrency(0, orderCurrency)}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Taxes</span>
