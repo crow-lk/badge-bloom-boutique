@@ -24,6 +24,54 @@ const Cart = () => {
   const [updatingId, setUpdatingId] = useState<number | string | null>(null);
   const [removingId, setRemovingId] = useState<number | string | null>(null);
   const [selectedSizes, setSelectedSizes] = useState<Record<number | string, string>>({});
+  const [selectedColors, setSelectedColors] = useState<Record<number | string, string>>({});
+  // Get available colors for a product
+  const getAvailableColors = (product: Product | undefined) => {
+    if (!product?.variants) return [];
+    // Only show colors that are active and have quantity > 0
+    return Array.from(
+      new Set(
+        product.variants
+          .filter(v => v.status === 'active' && v.quantity > 0)
+          .map(v => v.color?.name || v.color?.id?.toString())
+      )
+    ).filter(Boolean);
+  };
+
+  // Get available quantity for a color (optionally filtered by size)
+  const getAvailableQuantityForColor = (product: Product | undefined, colorName?: string, sizeName?: string) => {
+    if (!product?.variants || !colorName) return 0;
+    const variant = product.variants.find(v => (v.color?.name === colorName || v.color?.id?.toString() === colorName) && (!sizeName || v.size_name === sizeName));
+    return variant?.quantity ?? 0;
+  };
+
+  // Handle color change for a cart item
+  const handleColorChange = async (itemId: number | string, cartItemId: number | string | undefined, newColor: string, productVariantId: number | string) => {
+    if (updatingId) return;
+    if (!cartItemId) {
+      toast.error("Unable to update: cart item ID missing");
+      return;
+    }
+    setSelectedColors(prev => ({ ...prev, [itemId]: newColor }));
+    setUpdatingId(itemId);
+    try {
+      // Update the cart item with the new variant (color)
+      await updateCartItem(cartItemId, undefined, productVariantId);
+      await queryClient.invalidateQueries({ queryKey: ["cart"] });
+      toast.success("Color updated");
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to update color";
+      toast.error(errorMessage);
+      // Revert the selected color
+      setSelectedColors(prev => {
+        const updated = { ...prev };
+        delete updated[itemId];
+        return updated;
+      });
+    } finally {
+      setUpdatingId(null);
+    }
+  };
 
   const { data: cart, isLoading } = useCart();
   const { data: productData } = useProducts();
@@ -150,7 +198,7 @@ const Cart = () => {
                     <thead className="bg-background/70 text-[10px] uppercase tracking-[0.35em] text-muted-foreground">
                       <tr>
                         <th className="px-3 py-3 text-left">Product</th>
-                        <th className="px-3 py-3 text-left">Size</th>
+                        <th className="px-3 py-3 text-left">Size & Color</th>
                         <th className="px-3 py-3 text-left">Unit price</th>
                         <th className="px-3 py-3 text-left">Quantity</th>
                         <th className="px-3 py-3 text-left">Line total</th>
@@ -163,7 +211,12 @@ const Cart = () => {
                         const product = productLookup.get(item.productId ?? item.id);
                         const availableVariants = getAvailableVariants(product);
                         const currentSize = selectedSizes[item.id] || item.sizeName;
-                        const currentVariantQuantity = getAvailableQuantityForSize(product, currentSize);
+                        // ...existing code...
+                        // Find the variant for the current size+color
+                        const currentVariant = product?.variants?.find(v =>
+                          v.size_name === currentSize && v.id === item.productVariantId
+                        );
+                        const currentVariantQuantity = currentVariant?.quantity ?? getAvailableQuantityForSize(product, currentSize);
                         
                         return (
                           <tr key={`${item.id}`} className="bg-card/60">
@@ -194,32 +247,34 @@ const Cart = () => {
                               {availableVariants.length > 0 ? (
                                 <div className="flex flex-col gap-2">
                                   <Select
-                                    value={currentSize || ""}
-                                    onValueChange={(sizeValue) => {
-                                      const selectedVariant = availableVariants.find(v => v.size_name === sizeValue);
+                                    value={(() => {
+                                      const selectedVariant = availableVariants.find(v => v.size_name === currentSize && v.id === item.productVariantId);
+                                      return selectedVariant ? `${selectedVariant.size_name}|||${selectedVariant.color?.name || selectedVariant.color?.id || ''}` : '';
+                                    })()}
+                                    onValueChange={(value) => {
+                                      // value format: size|||color
+                                      const [sizeValue, colorValue] = value.split('|||');
+                                      const selectedVariant = availableVariants.find(v => v.size_name === sizeValue && (v.color?.name === colorValue || v.color?.id?.toString() === colorValue));
                                       if (selectedVariant?.id) {
                                         handleSizeChange(item.id, item.cartItemId, sizeValue, selectedVariant.id);
                                       }
                                     }}
                                     disabled={updatingId === item.id}
                                   >
-                                    <SelectTrigger className="h-8 w-24 text-[10px]">
-                                      <SelectValue placeholder="Select size" />
+                                    <SelectTrigger className="h-8 w-36 text-[10px]">
+                                      <SelectValue placeholder="Select size & color" />
                                     </SelectTrigger>
                                     <SelectContent>
                                       {availableVariants.map((variant) => (
                                         <SelectItem
-                                          key={`${item.id}-${variant.size_name}`}
-                                          value={variant.size_name || ""}
+                                          key={`${item.id}-${variant.size_name}-${variant.color?.name || variant.color?.id}`}
+                                          value={`${variant.size_name}|||${variant.color?.name || variant.color?.id || ''}`}
                                         >
-                                          {variant.size_name} ({variant.quantity})
+                                          {variant.size_name} {variant.color?.name ? `(${variant.color.name})` : ''} ({variant.quantity})
                                         </SelectItem>
                                       ))}
                                     </SelectContent>
                                   </Select>
-                                  <p className="text-[10px] text-muted-foreground">
-                                    Available: {currentVariantQuantity}
-                                  </p>
                                 </div>
                               ) : (
                                 <p className="text-[11px] text-muted-foreground">No sizes</p>

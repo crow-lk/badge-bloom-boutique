@@ -141,6 +141,9 @@ export const updateCartItem = async (
       method: "PUT",
       headers: cartHeaders(token ?? undefined),
       body: JSON.stringify(body),
+    }).then(async response => {
+      if (!response.ok) await parseError(response);
+      return response;
     });
   });
 
@@ -149,6 +152,9 @@ export const removeCartItem = async (cartItemId: number | string) =>
     fetch(attachSessionQuery(`${API_BASE_URL}/api/cart/items/${cartItemId}`, sessionId), {
       method: "DELETE",
       headers: cartHeaders(token ?? undefined),
+    }).then(async response => {
+      if (!response.ok) await parseError(response);
+      return response;
     }),
   );
 

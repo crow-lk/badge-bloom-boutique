@@ -29,6 +29,7 @@ const ProductDetail = () => {
   const queryClient = useQueryClient();
   const [adding, setAdding] = useState(false);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
 
   const touchStartX = useRef<number | null>(null);
@@ -70,13 +71,27 @@ const ProductDetail = () => {
 
   // Get all sizes (both available and unavailable)
   const allSizes = useMemo(() => {
-    if (!product?.variants?.length) {
-      return product?.sizes ?? [];
-    }
-    return product.variants
-      .map((v) => v.size_name || v.size_id?.toString() || "")
-      .filter(Boolean);
-  }, [product?.variants, product?.sizes]);
+    if (!product?.variants?.length) return [];
+
+    return Array.from(
+      new Set(
+        product.variants.map(
+          (v) => v.size_name || v.size_id?.toString() || ""
+        )
+      )
+    ).filter(Boolean);
+  }, [product?.variants]);
+
+  const allColors = useMemo(() => {
+  if (!product?.variants?.length) return [];
+  return Array.from(
+    new Set(
+      product.variants
+        .map((v) => v.color?.name || v.color?.id?.toString())
+        .filter(Boolean),
+    ),
+  );
+}, [product?.variants]);
 
   // Check if a size is available (has stock)
   const isSizeAvailable = (size: string): boolean => {
@@ -87,16 +102,42 @@ const ProductDetail = () => {
     return variant ? variant.quantity > 0 : true;
   };
 
-  // Get available quantity for selected size
-  const getMaxQuantityForSize = (size: string): number => {
-    if (!product?.variants?.length) return 999;
-    const variant = product.variants.find(
-      (v) => (v.size_name || v.size_id?.toString() || "") === size,
+  const isColorAvailable = (color: string): boolean => {
+    if (!product?.variants?.length) return true;
+
+    return product.variants.some(
+      (v) =>
+        (v.color?.name || v.color?.id?.toString()) === color &&
+        (!selectedSize ||
+          (v.size_name || v.size_id?.toString()) === selectedSize) &&
+        v.quantity > 0,
     );
-    return variant?.quantity ?? 999;
   };
 
-  const maxQuantity = selectedSize ? getMaxQuantityForSize(selectedSize) : 999;
+  const getMaxQuantityForSelection = (): number => {
+    if (!product?.variants?.length) return 999;
+
+    const variant = product.variants.find(
+      (v) =>
+        (!selectedSize ||
+          (v.size_name || v.size_id?.toString()) === selectedSize) &&
+        (!selectedColor ||
+          (v.color?.name || v.color?.id?.toString()) === selectedColor),
+    );
+
+    return variant?.quantity ?? 0;
+  };
+
+  // Get available quantity for selected size
+  // const getMaxQuantityForSize = (size: string): number => {
+  //   if (!product?.variants?.length) return 999;
+  //   const variant = product.variants.find(
+  //     (v) => (v.size_name || v.size_id?.toString() || "") === size,
+  //   );
+  //   return variant?.quantity ?? 999;
+  // };
+
+  const maxQuantity = getMaxQuantityForSelection();
 
   // Set selectedSize to first available size when product changes
   useEffect(() => {
@@ -116,16 +157,30 @@ const ProductDetail = () => {
     }
   }, [allSizes, product?.variants, selectedSize]);
 
+  useEffect(() => {
+    if (!product?.variants?.length) return;
+
+    if (selectedColor && isColorAvailable(selectedColor)) return;
+
+    const firstAvailableColor = allColors.find((color) => isColorAvailable(color));
+    setSelectedColor(firstAvailableColor ?? null);
+  }, [selectedSize, allColors, product?.variants]);
+
   // Get price based on selected variant or default product price
   const getSelectedVariant = () => {
     if (!product?.variants?.length) return undefined;
-    if (selectedSize) {
-      const match = product.variants.find(
-        (v) => v.size_name === selectedSize || v.size_id?.toString() === selectedSize,
-      );
-      if (match) return match;
-    }
-    return product.variants.find((variant) => variant.quantity > 0) ?? product.variants[0];
+
+    return (
+      product.variants.find(
+        (v) =>
+          (!selectedSize ||
+            (v.size_name || v.size_id?.toString()) === selectedSize) &&
+          (!selectedColor ||
+            (v.color?.name || v.color?.id?.toString()) === selectedColor),
+      ) ??
+      product.variants.find((v) => v.quantity > 0) ??
+      product.variants[0]
+    );
   };
 
   const getSelectedPrice = () => {
@@ -505,7 +560,37 @@ const ProductDetail = () => {
                       })}
                     </div>
                   </div>
+                  {allColors.length > 0 && (
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-2 block">
+                        Color
+                      </label>
 
+                      <div className="flex flex-wrap gap-2">
+                        {allColors.map((color) => {
+                          const available = isColorAvailable(color);
+
+                          return (
+                            <button
+                              key={color}
+                              onClick={() => available && setSelectedColor(color)}
+                              disabled={!available}
+                              className={cn(
+                                "px-4 py-2 rounded-md border text-sm font-medium transition-colors",
+                                selectedColor === color && available
+                                  ? "border-black bg-background text-foreground"
+                                  : !available
+                                    ? "border-border bg-background text-muted-foreground cursor-not-allowed line-through"
+                                    : "border-border bg-background text-foreground hover:border-primary hover:bg-muted",
+                              )}
+                            >
+                              {color}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                   <div>
                     <label className="text-sm font-medium text-foreground mb-3 block">Quantity</label>
                     <div className="flex w-fit items-center gap-4">
