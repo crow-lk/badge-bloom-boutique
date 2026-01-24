@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { fallbackProducts, getProductDisplayPrice, useProducts, type Product } from "@/hooks/use-products";
+import { fallbackProducts, getProductDisplayPrice, useProducts, type Color, type Product } from "@/hooks/use-products";
 import { getStoredToken } from "@/lib/auth";
 import { addCartItem } from "@/lib/cart";
 import { cn } from "@/lib/utils";
@@ -21,6 +21,12 @@ import { toast } from "sonner";
 const displayValue = (value: string | number | null | undefined, fallback = "—") =>
   value === undefined || value === null || value === "" ? fallback : String(value);
 
+type ColorOption = {
+  value: string;
+  label: string;
+  hex?: string;
+};
+
 const ProductDetail = () => {
   const { slug } = useParams<{ slug: string }>();
   const { data, isLoading, isError } = useProducts();
@@ -29,6 +35,7 @@ const ProductDetail = () => {
   const queryClient = useQueryClient();
   const [adding, setAdding] = useState(false);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
 
   const touchStartX = useRef<number | null>(null);
@@ -70,13 +77,45 @@ const ProductDetail = () => {
 
   // Get all sizes (both available and unavailable)
   const allSizes = useMemo(() => {
-    if (!product?.variants?.length) {
-      return product?.sizes ?? [];
-    }
-    return product.variants
-      .map((v) => v.size_name || v.size_id?.toString() || "")
-      .filter(Boolean);
-  }, [product?.variants, product?.sizes]);
+    if (!product?.variants?.length) return [];
+
+    return Array.from(
+      new Set(
+        product.variants.map(
+          (v) => v.size_name || v.size_id?.toString() || ""
+        )
+      )
+    ).filter(Boolean);
+  }, [product?.variants]);
+
+  const colorOptions = useMemo((): ColorOption[] => {
+    if (!product) return [];
+
+    const options = new Map<string, ColorOption>();
+
+    const addColor = (color?: Color | null) => {
+      if (!color) return;
+      const value = color.name || color.id?.toString() || "";
+      if (!value) return;
+      const label = color.name || value;
+      const hex = color.hex?.trim() || undefined;
+
+      const existing = options.get(value);
+      if (existing) {
+        if (!existing.hex && hex) {
+          options.set(value, { ...existing, hex });
+        }
+        return;
+      }
+
+      options.set(value, { value, label, hex });
+    };
+
+    product.colors?.forEach((color) => addColor(color));
+    product.variants?.forEach((variant) => addColor(variant.color));
+
+    return Array.from(options.values());
+  }, [product]);
 
   // Check if a size is available (has stock)
   const isSizeAvailable = (size: string): boolean => {
@@ -87,16 +126,42 @@ const ProductDetail = () => {
     return variant ? variant.quantity > 0 : true;
   };
 
-  // Get available quantity for selected size
-  const getMaxQuantityForSize = (size: string): number => {
-    if (!product?.variants?.length) return 999;
-    const variant = product.variants.find(
-      (v) => (v.size_name || v.size_id?.toString() || "") === size,
+  const isColorAvailable = (color: string): boolean => {
+    if (!product?.variants?.length) return true;
+
+    return product.variants.some(
+      (v) =>
+        (v.color?.name || v.color?.id?.toString()) === color &&
+        (!selectedSize ||
+          (v.size_name || v.size_id?.toString()) === selectedSize) &&
+        v.quantity > 0,
     );
-    return variant?.quantity ?? 999;
   };
 
-  const maxQuantity = selectedSize ? getMaxQuantityForSize(selectedSize) : 999;
+  const getMaxQuantityForSelection = (): number => {
+    if (!product?.variants?.length) return 999;
+
+    const variant = product.variants.find(
+      (v) =>
+        (!selectedSize ||
+          (v.size_name || v.size_id?.toString()) === selectedSize) &&
+        (!selectedColor ||
+          (v.color?.name || v.color?.id?.toString()) === selectedColor),
+    );
+
+    return variant?.quantity ?? 0;
+  };
+
+  // Get available quantity for selected size
+  // const getMaxQuantityForSize = (size: string): number => {
+  //   if (!product?.variants?.length) return 999;
+  //   const variant = product.variants.find(
+  //     (v) => (v.size_name || v.size_id?.toString() || "") === size,
+  //   );
+  //   return variant?.quantity ?? 999;
+  // };
+
+  const maxQuantity = getMaxQuantityForSelection();
 
   // Set selectedSize to first available size when product changes
   useEffect(() => {
@@ -116,16 +181,33 @@ const ProductDetail = () => {
     }
   }, [allSizes, product?.variants, selectedSize]);
 
+  useEffect(() => {
+    if (!colorOptions.length) {
+      setSelectedColor(null);
+      return;
+    }
+
+    if (selectedColor && isColorAvailable(selectedColor)) return;
+
+    const firstAvailableColor = colorOptions.find((color) => isColorAvailable(color.value));
+    setSelectedColor(firstAvailableColor?.value ?? null);
+  }, [selectedSize, colorOptions, product?.variants, selectedColor]);
+
   // Get price based on selected variant or default product price
   const getSelectedVariant = () => {
     if (!product?.variants?.length) return undefined;
-    if (selectedSize) {
-      const match = product.variants.find(
-        (v) => v.size_name === selectedSize || v.size_id?.toString() === selectedSize,
-      );
-      if (match) return match;
-    }
-    return product.variants.find((variant) => variant.quantity > 0) ?? product.variants[0];
+
+    return (
+      product.variants.find(
+        (v) =>
+          (!selectedSize ||
+            (v.size_name || v.size_id?.toString()) === selectedSize) &&
+          (!selectedColor ||
+            (v.color?.name || v.color?.id?.toString()) === selectedColor),
+      ) ??
+      product.variants.find((v) => v.quantity > 0) ??
+      product.variants[0]
+    );
   };
 
   const getSelectedPrice = () => {
@@ -467,14 +549,14 @@ const ProductDetail = () => {
                   <h1 className="mt-2 text-2xl font-light tracking-tight md:text-3xl">{product.name}</h1>
                   <p className="mt-2 text-sm text-muted-foreground md:text-base text-justify">{description}</p>
                 </div>
-                <Badge variant={statusVariant}>
+                {/* <Badge variant={statusVariant}>
                   {product.status}
-                </Badge>
+                </Badge> */}
               </div>
 
               <div className="flex flex-wrap items-center gap-4">
                 <span className="text-2xl font-light md:text-3xl">{selectedPriceLabel}</span>
-                <Badge variant="secondary">{brandLabel}</Badge>
+                {/* <Badge variant="secondary">{brandLabel}</Badge> */}
                 {inquiryOnly && <Badge variant="outline">Inquiry only</Badge>}
               </div>
 
@@ -505,7 +587,56 @@ const ProductDetail = () => {
                       })}
                     </div>
                   </div>
+                  {colorOptions.length > 0 && (
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-2 block">
+                        Color
+                      </label>
 
+                      <div className="flex flex-wrap gap-2">
+                        {colorOptions.map((color) => {
+                          const available = isColorAvailable(color.value);
+                          const isSelected = selectedColor === color.value;
+
+                          return (
+                            <button
+                              key={color.value}
+                              type="button"
+                              onClick={() => available && setSelectedColor(color.value)}
+                              disabled={!available}
+                              className={cn(
+                                "relative h-10 w-10 rounded-full border transition-colors",
+                                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                                available ? "cursor-pointer" : "cursor-not-allowed opacity-40",
+                                isSelected && available
+                                  ? "border-foreground ring-2 ring-foreground/30"
+                                  : available
+                                    ? "border-border hover:border-primary hover:ring-2 hover:ring-primary/30"
+                                    : "border-border",
+                              )}
+                              aria-label={color.label}
+                              aria-pressed={isSelected}
+                              title={color.label}
+                            >
+                              <span
+                                aria-hidden="true"
+                                className={cn(
+                                  "absolute inset-1 rounded-full border border-black/10",
+                                  !color.hex && "bg-muted",
+                                )}
+                                style={color.hex ? { backgroundColor: color.hex } : undefined}
+                              />
+                              {!color.hex && (
+                                <span className="relative z-10 text-[10px] font-semibold text-muted-foreground">
+                                  {color.label.slice(0, 2).toUpperCase()}
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                   <div>
                     <label className="text-sm font-medium text-foreground mb-3 block">Quantity</label>
                     <div className="flex w-fit items-center gap-4">
@@ -524,7 +655,7 @@ const ProductDetail = () => {
                           +
                         </button>
                       </div>
-                      <span className="text-sm text-muted-foreground font-medium">Available: {maxQuantity}</span>
+                      {/* <span className="text-sm text-muted-foreground font-medium">Available: {maxQuantity}</span> */}
                     </div>
                   </div>
                 </div>

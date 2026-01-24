@@ -36,9 +36,7 @@ const About = () => {
               </p>
             </Card>
           </div>
-
-          <div className="grid gap-6 md:grid-cols-[1.1fr_0.9fr] items-start">
-            <Card className="space-y-4 border-border/70 bg-card/80 p-6 shadow-sm text-center md:text-left">
+            {/* <Card className="space-y-4 border-border/70 bg-card/80 p-6 shadow-sm text-center md:text-left">
               <div className="flex items-center gap-2">
                 <Badge variant="secondary">Heritage</Badge>
                 <p className="text-xs uppercase tracking-[0.26em] text-muted-foreground">AALIYAA Studio</p>
@@ -64,9 +62,9 @@ const About = () => {
                   </p>
                 </Card>
               </div>
-            </Card>
+            </Card> */}
 
-            <div className="space-y-4">
+            <div className="grid gap-6 md:grid-cols-2">
               <Card className="border-border/70 bg-card/80 p-6 shadow-sm">
                 <h3 className="text-lg font-medium tracking-tight">What to expect</h3>
                 <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
@@ -83,7 +81,6 @@ const About = () => {
                 </p>
               </Card>
             </div>
-          </div>
         </div>
       </main>
       <Footer />

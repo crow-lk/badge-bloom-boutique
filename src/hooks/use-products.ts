@@ -7,6 +7,12 @@ import { useQuery } from "@tanstack/react-query";
 
 const fallbackImages = [tshirtImage, pantsImage, coatImage, sweaterImage];
 
+export type Color = {
+  id: number | string;
+  name: string;
+  hex: string;
+};
+
 export type ProductVariant = {
   id: number | string;
   sku?: string;
@@ -15,6 +21,7 @@ export type ProductVariant = {
   selling_price?: number | null;
   quantity: number;
   status?: string;
+  color?: Color | null;
 };
 
 export type ApiProduct = {
@@ -40,6 +47,7 @@ export type ApiProduct = {
   inquiry_only?: boolean;
   show_price_inquiry_mode?: boolean;
   variants?: ProductVariant[];
+  colors?: Color[];
 };
 
 export type Product = {
@@ -52,6 +60,7 @@ export type Product = {
   images: string[];
   sizes: string[];
   variants?: ProductVariant[];
+  colors: Color[];
   status: string;
   inquiryOnly: boolean;
   showPriceInquiryMode: boolean;
@@ -122,6 +131,17 @@ const normalizeProduct = (product: ApiProduct, index: number): Product => {
     product.show_price_inquiry_mode == null ? !inquiryOnly : Boolean(product.show_price_inquiry_mode);
   const variantPrice = getFirstVariantPrice(product.variants);
   const resolvedPrice = product.selling_price ?? variantPrice ?? null;
+  const colors =
+    product.colors?.length
+      ? product.colors
+      : Array.from(
+          new Map(
+            product.variants
+              ?.map((v) => v.color)
+              .filter(Boolean)
+              .map((c) => [c!.id, c!])
+          ).values()
+        );
 
   return {
     id: product.id,
@@ -133,6 +153,7 @@ const normalizeProduct = (product: ApiProduct, index: number): Product => {
     images: gallery,
     sizes,
     variants: product.variants,
+    colors: colors ?? [],
     status: product.status ?? "active",
     inquiryOnly,
     showPriceInquiryMode,
@@ -161,6 +182,11 @@ export const fallbackProducts: Product[] = [
     image: tshirtImage,
     images: [tshirtImage, sweaterImage, pantsImage, coatImage],
     sizes: ["XS", "S", "M", "L", "XL"],
+    colors: [
+      { id: 1, name: "White", hex: "#FFFFFF" },
+      { id: 2, name: "Black", hex: "#000000" },
+      { id: 3, name: "Navy", hex: "#000080" },
+    ],
     status: "active",
     inquiryOnly: false,
     showPriceInquiryMode: true,
@@ -186,6 +212,11 @@ export const fallbackProducts: Product[] = [
     image: pantsImage,
     images: [pantsImage, coatImage, tshirtImage, sweaterImage],
     sizes: ["2", "4", "6", "8", "10"],
+    colors: [
+      { id: 1, name: "White", hex: "#FFFFFF" },
+      { id: 2, name: "Black", hex: "#000000" },
+      { id: 3, name: "Navy", hex: "#000080" },
+    ],
     status: "active",
     inquiryOnly: false,
     showPriceInquiryMode: true,
@@ -211,6 +242,11 @@ export const fallbackProducts: Product[] = [
     image: coatImage,
     images: [coatImage, pantsImage, sweaterImage, tshirtImage],
     sizes: ["XS", "S", "M", "L"],
+    colors: [
+      { id: 1, name: "White", hex: "#FFFFFF" },
+      { id: 2, name: "Black", hex: "#000000" },
+      { id: 3, name: "Navy", hex: "#000080" },
+    ],
     status: "active",
     inquiryOnly: true,
     showPriceInquiryMode: false,
@@ -236,6 +272,11 @@ export const fallbackProducts: Product[] = [
     image: sweaterImage,
     images: [sweaterImage, tshirtImage, pantsImage, coatImage],
     sizes: ["XS", "S", "M", "L", "XL"],
+    colors: [
+      { id: 1, name: "White", hex: "#FFFFFF" },
+      { id: 2, name: "Black", hex: "#000000" },
+      { id: 3, name: "Navy", hex: "#000080" },
+    ],
     status: "preorder",
     inquiryOnly: false,
     showPriceInquiryMode: true,
