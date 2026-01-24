@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { fallbackProducts, getProductDisplayPrice, useProducts, type Product } from "@/hooks/use-products";
+import { fallbackProducts, getProductDisplayPrice, useProducts, type Color, type Product } from "@/hooks/use-products";
 import { getStoredToken } from "@/lib/auth";
 import { addCartItem } from "@/lib/cart";
 import { cn } from "@/lib/utils";
@@ -20,6 +20,12 @@ import { toast } from "sonner";
 
 const displayValue = (value: string | number | null | undefined, fallback = "—") =>
   value === undefined || value === null || value === "" ? fallback : String(value);
+
+type ColorOption = {
+  value: string;
+  label: string;
+  hex?: string;
+};
 
 const ProductDetail = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -82,16 +88,34 @@ const ProductDetail = () => {
     ).filter(Boolean);
   }, [product?.variants]);
 
-  const allColors = useMemo(() => {
-  if (!product?.variants?.length) return [];
-  return Array.from(
-    new Set(
-      product.variants
-        .map((v) => v.color?.name || v.color?.id?.toString())
-        .filter(Boolean),
-    ),
-  );
-}, [product?.variants]);
+  const colorOptions = useMemo((): ColorOption[] => {
+    if (!product) return [];
+
+    const options = new Map<string, ColorOption>();
+
+    const addColor = (color?: Color | null) => {
+      if (!color) return;
+      const value = color.name || color.id?.toString() || "";
+      if (!value) return;
+      const label = color.name || value;
+      const hex = color.hex?.trim() || undefined;
+
+      const existing = options.get(value);
+      if (existing) {
+        if (!existing.hex && hex) {
+          options.set(value, { ...existing, hex });
+        }
+        return;
+      }
+
+      options.set(value, { value, label, hex });
+    };
+
+    product.colors?.forEach((color) => addColor(color));
+    product.variants?.forEach((variant) => addColor(variant.color));
+
+    return Array.from(options.values());
+  }, [product]);
 
   // Check if a size is available (has stock)
   const isSizeAvailable = (size: string): boolean => {
@@ -158,13 +182,16 @@ const ProductDetail = () => {
   }, [allSizes, product?.variants, selectedSize]);
 
   useEffect(() => {
-    if (!product?.variants?.length) return;
+    if (!colorOptions.length) {
+      setSelectedColor(null);
+      return;
+    }
 
     if (selectedColor && isColorAvailable(selectedColor)) return;
 
-    const firstAvailableColor = allColors.find((color) => isColorAvailable(color));
-    setSelectedColor(firstAvailableColor ?? null);
-  }, [selectedSize, allColors, product?.variants]);
+    const firstAvailableColor = colorOptions.find((color) => isColorAvailable(color.value));
+    setSelectedColor(firstAvailableColor?.value ?? null);
+  }, [selectedSize, colorOptions, product?.variants, selectedColor]);
 
   // Get price based on selected variant or default product price
   const getSelectedVariant = () => {
@@ -560,31 +587,50 @@ const ProductDetail = () => {
                       })}
                     </div>
                   </div>
-                  {allColors.length > 0 && (
+                  {colorOptions.length > 0 && (
                     <div>
                       <label className="text-sm font-medium text-foreground mb-2 block">
                         Color
                       </label>
 
                       <div className="flex flex-wrap gap-2">
-                        {allColors.map((color) => {
-                          const available = isColorAvailable(color);
+                        {colorOptions.map((color) => {
+                          const available = isColorAvailable(color.value);
+                          const isSelected = selectedColor === color.value;
 
                           return (
                             <button
-                              key={color}
-                              onClick={() => available && setSelectedColor(color)}
+                              key={color.value}
+                              type="button"
+                              onClick={() => available && setSelectedColor(color.value)}
                               disabled={!available}
                               className={cn(
-                                "px-4 py-2 rounded-md border text-sm font-medium transition-colors",
-                                selectedColor === color && available
-                                  ? "border-black bg-background text-foreground"
-                                  : !available
-                                    ? "border-border bg-background text-muted-foreground cursor-not-allowed line-through"
-                                    : "border-border bg-background text-foreground hover:border-primary hover:bg-muted",
+                                "relative h-10 w-10 rounded-full border transition-colors",
+                                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                                available ? "cursor-pointer" : "cursor-not-allowed opacity-40",
+                                isSelected && available
+                                  ? "border-foreground ring-2 ring-foreground/30"
+                                  : available
+                                    ? "border-border hover:border-primary hover:ring-2 hover:ring-primary/30"
+                                    : "border-border",
                               )}
+                              aria-label={color.label}
+                              aria-pressed={isSelected}
+                              title={color.label}
                             >
-                              {color}
+                              <span
+                                aria-hidden="true"
+                                className={cn(
+                                  "absolute inset-1 rounded-full border border-black/10",
+                                  !color.hex && "bg-muted",
+                                )}
+                                style={color.hex ? { backgroundColor: color.hex } : undefined}
+                              />
+                              {!color.hex && (
+                                <span className="relative z-10 text-[10px] font-semibold text-muted-foreground">
+                                  {color.label.slice(0, 2).toUpperCase()}
+                                </span>
+                              )}
                             </button>
                           );
                         })}
