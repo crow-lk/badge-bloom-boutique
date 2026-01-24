@@ -522,14 +522,14 @@ const ProductDetail = () => {
                   <h1 className="mt-2 text-2xl font-light tracking-tight md:text-3xl">{product.name}</h1>
                   <p className="mt-2 text-sm text-muted-foreground md:text-base text-justify">{description}</p>
                 </div>
-                <Badge variant={statusVariant}>
+                {/* <Badge variant={statusVariant}>
                   {product.status}
-                </Badge>
+                </Badge> */}
               </div>
 
               <div className="flex flex-wrap items-center gap-4">
                 <span className="text-2xl font-light md:text-3xl">{selectedPriceLabel}</span>
-                <Badge variant="secondary">{brandLabel}</Badge>
+                {/* <Badge variant="secondary">{brandLabel}</Badge> */}
                 {inquiryOnly && <Badge variant="outline">Inquiry only</Badge>}
               </div>
 
@@ -609,7 +609,7 @@ const ProductDetail = () => {
                           +
                         </button>
                       </div>
-                      <span className="text-sm text-muted-foreground font-medium">Available: {maxQuantity}</span>
+                      {/* <span className="text-sm text-muted-foreground font-medium">Available: {maxQuantity}</span> */}
                     </div>
                   </div>
                 </div>
