@@ -85,10 +85,10 @@ const WelcomePopup = () => {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-[520px] overflow-hidden p-0 [&>button]:z-10 [&>button]:rounded-full [&>button]:bg-background/80 [&>button]:text-foreground [&>button]:backdrop-blur-sm [&>button]:hover:bg-background">
+      <DialogContent className="w-fit max-w-[90vw] overflow-hidden p-0 [&>button]:z-10 [&>button]:rounded-full [&>button]:bg-background/80 [&>button]:text-foreground [&>button]:backdrop-blur-sm [&>button]:hover:bg-background">
         {imageUrl && (
-          <div className="aspect-[4/3] w-full overflow-hidden bg-muted">
-            <img src={imageUrl} alt="Welcome" className="h-full w-full object-contain" />
+          <div className="flex justify-center bg-muted">
+            <img src={imageUrl} alt="Welcome" className="block h-auto w-auto max-h-[70vh] max-w-[90vw] object-contain" />
           </div>
         )}
         <div className="space-y-4 p-6 text-center">
