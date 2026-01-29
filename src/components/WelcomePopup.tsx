@@ -85,17 +85,17 @@ const WelcomePopup = () => {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-[520px] overflow-hidden p-0">
+      <DialogContent className="max-w-[520px] overflow-hidden p-0 [&>button]:z-10 [&>button]:rounded-full [&>button]:bg-background/80 [&>button]:text-foreground [&>button]:backdrop-blur-sm [&>button]:hover:bg-background">
         {imageUrl && (
           <div className="aspect-[4/3] w-full overflow-hidden bg-muted">
-            <img src={imageUrl} alt="Welcome" className="h-full w-full object-cover" />
+            <img src={imageUrl} alt="Welcome" className="h-full w-full object-contain" />
           </div>
         )}
         <div className="space-y-4 p-6 text-center">
           {settings?.description && <p className="text-sm text-muted-foreground">{settings.description}</p>}
           {settings?.link_url ? (
             <Button asChild onClick={() => handleOpenChange(false)}>
-              <a href={settings.link_url}>Learn more</a>
+              <a href={settings.link_url}>Buy now</a>
             </Button>
           ) : (
             <DialogClose asChild>
