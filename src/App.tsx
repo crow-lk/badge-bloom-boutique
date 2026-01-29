@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import WelcomePopup from "@/components/WelcomePopup";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Collections from "./pages/Collections";
@@ -43,6 +44,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <ScrollToTop />
+        <WelcomePopup />
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/shop" element={<Index />} />
