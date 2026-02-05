@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import MintpayBreakdown from "@/components/MintpayBreakdown";
 import { fallbackProducts, getProductDisplayPrice, useProducts, type Product } from "@/hooks/use-products";
 import { Link } from "react-router-dom";
 
@@ -58,6 +59,9 @@ const Index = () => {
                     </p>
                     <p className="text-lg font-medium text-white text-center sm:text-left">{item.name}</p>
                     <p className="text-sm text-white/80 text-center sm:text-left">{displayPrice(item)}</p>
+                    <div className="text-center sm:text-left">
+                      <MintpayBreakdown price={item.inquiryOnly ? null : item.price} className="text-white/80" />
+                    </div>
                   </div>
                 </div>
                 <div className="p-4 text-center sm:text-left">
@@ -103,9 +107,12 @@ const Index = () => {
                 <Button asChild>
                   <Link to={`/products/${spotlight.slug}`}>View product</Link>
                 </Button>
-                <p className="text-sm text-muted-foreground">
-                  Sizes: {spotlight.sizes?.join(", ") || "XS to XL"} · {displayPrice(spotlight)}
-                </p>
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">
+                    Sizes: {spotlight.sizes?.join(", ") || "XS to XL"} · {displayPrice(spotlight)}
+                  </p>
+                  <MintpayBreakdown price={spotlight.inquiryOnly ? null : spotlight.price} />
+                </div>
               </div>
             </div>
 
