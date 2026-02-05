@@ -1,3 +1,4 @@
+import MintpayBreakdown from "@/components/MintpayBreakdown";
 import { Card } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 
@@ -5,11 +6,12 @@ interface ProductCardProps {
   image: string;
   name: string;
   price: string;
+  priceValue?: number | null;
   sizes?: string[];
   slug?: string;
 }
 
-const ProductCard = ({ image, name, price, sizes, slug }: ProductCardProps) => {
+const ProductCard = ({ image, name, price, priceValue, sizes, slug }: ProductCardProps) => {
   const sizeLabel = sizes?.length ? sizes.join(" · ") : "Sizes available";
 
   const card = (
@@ -30,6 +32,7 @@ const ProductCard = ({ image, name, price, sizes, slug }: ProductCardProps) => {
         <h3 className="mb-2 text-lg font-light tracking-wide text-foreground">{name}</h3>
         <div className="space-y-1">
           <p className="text-sm font-light text-muted-foreground">{price}</p>
+          <MintpayBreakdown price={priceValue} />
           {/* <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Sizes: {sizeLabel}</p> */}
         </div>
       </div>

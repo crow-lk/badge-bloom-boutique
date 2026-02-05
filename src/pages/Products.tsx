@@ -229,6 +229,7 @@ const Products = () => {
                   image={product.image}
                   name={product.name}
                   price={getProductDisplayPrice(product)}
+                  priceValue={product.inquiryOnly ? null : product.price}
                   sizes={product.sizes}
                   slug={product.slug}
                 />

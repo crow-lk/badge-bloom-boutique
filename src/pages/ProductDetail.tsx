@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import MintpayBreakdown from "@/components/MintpayBreakdown";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -559,6 +560,7 @@ const ProductDetail = () => {
                 {/* <Badge variant="secondary">{brandLabel}</Badge> */}
                 {inquiryOnly && <Badge variant="outline">Inquiry only</Badge>}
               </div>
+              {!inquiryOnly && <MintpayBreakdown price={selectedPrice} />}
 
               {!inquiryOnly && (
                 <div className="space-y-4">
