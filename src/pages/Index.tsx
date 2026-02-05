@@ -56,7 +56,7 @@ const Index = () => {
                   <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-background/30 to-transparent" />
                   <div className="absolute inset-x-0 bottom-0 p-5 space-y-1.5">
                     <p className="text-sm uppercase tracking-[0.22em] text-white/80 text-center sm:text-left">
-                      {item.collection_id}
+                      {item.collection_name ?? item.collection_id}
                     </p>
                     <p className="text-lg font-medium text-white text-center sm:text-left">{item.name}</p>
                     <p className="text-sm text-white/80 text-center sm:text-left">{displayPrice(item)}</p>

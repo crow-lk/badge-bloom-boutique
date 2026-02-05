@@ -319,7 +319,7 @@ const Navbar = () => {
                           <div className="flex-1">
                             <p className="text-sm font-medium text-foreground">{product.name}</p>
                             <p className="text-xs text-muted-foreground">
-                              {getProductDisplayPrice(product)} • {product.collection_id ?? "Collection"} • {product.category_id ?? "Category"}
+                              {getProductDisplayPrice(product)} • {product.collection_name ?? product.collection_id ?? "Collection"} • {product.category_id ?? "Category"}
                             </p>
                           </div>
                           <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">

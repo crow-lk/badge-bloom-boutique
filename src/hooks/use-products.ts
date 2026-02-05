@@ -34,6 +34,10 @@ export type ApiProduct = {
   category_id?: string | number | null;
   collection_id?: string | number | null;
   collection_name?: string | null;
+  collection?: {
+    id?: number | string | null;
+    name?: string | null;
+  } | null;
   season?: string | null;
   description?: string | null;
   care_instructions?: string | null;
@@ -111,7 +115,10 @@ const buildHighlights = (product: ApiProduct) => {
   if (product.season) {
     items.push(`${product.season} ready`);
   }
-  if (product.collection_id) {
+  const collectionName = product.collection_name?.trim() || product.collection?.name?.trim();
+  if (collectionName) {
+    items.push(collectionName);
+  } else if (product.collection_id) {
     items.push(`Collection ${product.collection_id}`);
   }
   if (items.length < 2) {
@@ -143,6 +150,9 @@ const normalizeProduct = (product: ApiProduct, index: number): Product => {
           ).values()
         );
 
+  const collectionName = product.collection_name?.trim() || product.collection?.name?.trim() || null;
+  const collectionId = product.collection_id ?? product.collection?.id ?? null;
+
   return {
     id: product.id,
     name: product.name ?? `Product ${product.id}`,
@@ -160,8 +170,8 @@ const normalizeProduct = (product: ApiProduct, index: number): Product => {
     sku_prefix: product.sku_prefix,
     brand_id: product.brand_id,
     category_id: product.category_id,
-    collection_id: product.collection_id,
-    collection_name: product.collection_name,
+    collection_id: collectionId,
+    collection_name: collectionName,
     season: product.season,
     description: product.description ?? "Description coming soon.",
     care_instructions: product.care_instructions ?? "Care instructions coming soon.",
