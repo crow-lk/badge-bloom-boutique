@@ -14,6 +14,7 @@ import { API_BASE_URL, getStoredToken, getStoredUser } from "@/lib/auth";
 import {
   initiatePayment,
   placeOrder,
+  storeMintpayCheckout,
   storePayHereCheckout,
   type CheckoutAddress,
   type PaymentMethod,
@@ -197,6 +198,11 @@ type RedirectCheckout = {
 const isPayHereMethod = (method: PaymentMethod) => {
   const probe = [method.slug, method.provider, method.name].filter(Boolean).join(" ").toLowerCase();
   return probe.includes("payhere");
+};
+
+const isMintpayMethod = (method: PaymentMethod) => {
+  const probe = [method.slug, method.provider, method.name].filter(Boolean).join(" ").toLowerCase();
+  return probe.includes("mintpay");
 };
 
 const normalizeRedirectCheckout = (checkout?: Record<string, unknown> | null): RedirectCheckout | null => {
@@ -470,6 +476,7 @@ const Checkout = () => {
     setProcessingPaymentId(value);
     try {
       const isPayHere = isPayHereMethod(method);
+      const isMintpay = isMintpayMethod(method);
       const origin = typeof window !== "undefined" ? window.location.origin : "";
       const paymentResponse = await initiatePaymentMutation.mutateAsync({
         payment_method_id: method.id,
@@ -478,6 +485,9 @@ const Checkout = () => {
         shipping_total: orderShippingTotal,
         return_url: isPayHere && origin ? `${origin}/payments/payhere/return` : undefined,
         cancel_url: isPayHere && origin ? `${origin}/payments/payhere/cancel` : undefined,
+        success_url: isMintpay && origin ? `${origin}/payments/mintpay/success` : undefined,
+        fail_url: isMintpay && origin ? `${origin}/payments/mintpay/fail` : undefined,
+        shipping: isMintpay ? shippingAddress : undefined,
       });
       const paymentId = paymentResponse.payment?.id;
       if (!paymentId) {
@@ -497,6 +507,23 @@ const Checkout = () => {
             notes: notes.trim() || undefined,
             currency: orderCurrency,
             checkout: paymentResponse.checkout as Record<string, unknown>,
+            created_at: new Date().toISOString(),
+          });
+        }
+        if (isMintpay) {
+          const checkoutPayload = paymentResponse.checkout as Record<string, unknown>;
+          const purchaseId =
+            String(checkoutPayload?.purchase_id ?? redirectCheckout.fields?.purchase_id ?? "").trim() || undefined;
+          storeMintpayCheckout({
+            payment_id: paymentId,
+            payment_method_id: method.id,
+            purchase_id: purchaseId,
+            shipping: shippingAddress,
+            billing: shippingAddress,
+            shipping_total: orderShippingTotal,
+            notes: notes.trim() || undefined,
+            currency: orderCurrency,
+            checkout: checkoutPayload,
             created_at: new Date().toISOString(),
           });
         }

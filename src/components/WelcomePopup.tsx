@@ -88,11 +88,11 @@ const WelcomePopup = () => {
       <DialogContent className="h-[100dvh] w-screen max-w-screen overflow-hidden p-0 sm:h-auto sm:max-h-[85vh] sm:w-[min(90vw,640px)] sm:max-w-[min(90vw,640px)] [&>button]:z-10 [&>button]:rounded-full [&>button]:bg-background/80 [&>button]:text-foreground [&>button]:backdrop-blur-sm [&>button]:hover:bg-background">
         {imageUrl ? (
           <div className="relative flex h-full w-full items-center justify-center bg-background sm:bg-transparent">
-            <div className="flex h-full w-full items-center justify-center p-4 sm:p-6">
+            <div className="flex h-full w-full items-center justify-center p-6 sm:p-8">
               <img
                 src={imageUrl}
                 alt="Welcome"
-                className="block max-h-full max-w-full object-contain sm:max-h-[70vh]"
+                className="block max-h-[75vh] max-w-[90vw] object-contain sm:max-h-[70vh] sm:max-w-[520px]"
               />
             </div>
             <div className="absolute inset-x-0 bottom-0 space-y-4 bg-background/80 p-6 text-center text-foreground backdrop-blur-sm sm:static sm:bg-transparent sm:p-6 sm:text-center sm:backdrop-blur-0">
