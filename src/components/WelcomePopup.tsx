@@ -87,8 +87,14 @@ const WelcomePopup = () => {
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="h-[100dvh] w-screen max-w-screen overflow-hidden p-0 sm:h-auto sm:max-h-[85vh] sm:w-[min(90vw,640px)] sm:max-w-[min(90vw,640px)] [&>button]:z-10 [&>button]:rounded-full [&>button]:bg-background/80 [&>button]:text-foreground [&>button]:backdrop-blur-sm [&>button]:hover:bg-background">
         {imageUrl ? (
-          <div className="relative h-full w-full">
-            <img src={imageUrl} alt="Welcome" className="block h-full w-full object-cover sm:max-h-[70vh]" />
+          <div className="relative flex h-full w-full items-center justify-center bg-background sm:bg-transparent">
+            <div className="flex h-full w-full items-center justify-center p-6 sm:p-8">
+              <img
+                src={imageUrl}
+                alt="Welcome"
+                className="block max-h-[75vh] max-w-[90vw] object-contain sm:max-h-[70vh] sm:max-w-[520px]"
+              />
+            </div>
             <div className="absolute inset-x-0 bottom-0 space-y-4 bg-background/80 p-6 text-center text-foreground backdrop-blur-sm sm:static sm:bg-transparent sm:p-6 sm:text-center sm:backdrop-blur-0">
               {settings?.description && <p className="text-sm text-muted-foreground">{settings.description}</p>}
               {settings?.link_url ? (

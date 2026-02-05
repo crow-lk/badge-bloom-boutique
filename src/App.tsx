@@ -14,6 +14,8 @@ import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import PayHereReturn from "./pages/PayHereReturn";
 import PayHereCancel from "./pages/PayHereCancel";
+import MintpaySuccess from "./pages/MintpaySuccess";
+import MintpayFail from "./pages/MintpayFail";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -56,6 +58,8 @@ const App = () => (
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/payments/payhere/return" element={<PayHereReturn />} />
           <Route path="/payments/payhere/cancel" element={<PayHereCancel />} />
+          <Route path="/payments/mintpay/success" element={<MintpaySuccess />} />
+          <Route path="/payments/mintpay/fail" element={<MintpayFail />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />

@@ -41,6 +41,9 @@ export type InitiatePaymentInput = {
   return_url?: string;
   cancel_url?: string;
   notify_url?: string;
+  success_url?: string;
+  fail_url?: string;
+  shipping?: CheckoutAddress;
 };
 
 export type InitiatePaymentResponse = {
@@ -99,6 +102,7 @@ export type StoredPayHereCheckout = {
 };
 
 const PAYHERE_STORAGE_KEY = "aaliyaa.payhere.checkout";
+const MINTPAY_STORAGE_KEY = "aaliyaa.mintpay.checkout";
 
 const parseError = async (response: Response) => {
   let message = `Request failed with status ${response.status}`;
@@ -204,9 +208,46 @@ export const fetchPaymentStatus = async (
   return (await response.json()) as PaymentStatusResponse;
 };
 
+export const fetchMintpayStatus = async (
+  paymentId: number | string,
+  purchaseId?: string | null,
+): Promise<PaymentStatusResponse> => {
+  const token = getStoredToken();
+  const url = new URL(`${API_BASE_URL}/api/payments/mintpay/status/${paymentId}`);
+  if (purchaseId) {
+    url.searchParams.set("purchase_id", purchaseId);
+  }
+  const response = await fetch(url.toString(), {
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
+  if (!response.ok) {
+    await parseError(response);
+  }
+  return (await response.json()) as PaymentStatusResponse;
+};
+
 export const storePayHereCheckout = (payload: StoredPayHereCheckout) => {
   if (typeof window === "undefined") return;
   sessionStorage.setItem(PAYHERE_STORAGE_KEY, JSON.stringify(payload));
+};
+
+export type StoredMintpayCheckout = {
+  payment_id: number | string;
+  payment_method_id: number | string;
+  purchase_id?: string;
+  shipping: CheckoutAddress;
+  billing?: CheckoutAddress | null;
+  shipping_total?: number;
+  notes?: string;
+  currency?: string;
+  session_id?: string | null;
+  checkout?: Record<string, unknown>;
+  created_at: string;
+};
+
+export const storeMintpayCheckout = (payload: StoredMintpayCheckout) => {
+  if (typeof window === "undefined") return;
+  sessionStorage.setItem(MINTPAY_STORAGE_KEY, JSON.stringify(payload));
 };
 
 export const loadPayHereCheckout = (): StoredPayHereCheckout | null => {
@@ -220,7 +261,23 @@ export const loadPayHereCheckout = (): StoredPayHereCheckout | null => {
   }
 };
 
+export const loadMintpayCheckout = (): StoredMintpayCheckout | null => {
+  if (typeof window === "undefined") return null;
+  const raw = sessionStorage.getItem(MINTPAY_STORAGE_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as StoredMintpayCheckout;
+  } catch {
+    return null;
+  }
+};
+
 export const clearPayHereCheckout = () => {
   if (typeof window === "undefined") return;
   sessionStorage.removeItem(PAYHERE_STORAGE_KEY);
+};
+
+export const clearMintpayCheckout = () => {
+  if (typeof window === "undefined") return;
+  sessionStorage.removeItem(MINTPAY_STORAGE_KEY);
 };
