@@ -855,7 +855,7 @@ const Checkout = () => {
                     </p>
                     <Button
                       type="button"
-                      className="mt-3 w-full sm:mt-0 sm:w-auto"
+                      className="mt-3 w-full sm:mt-0 sm:w-auto bg-amber-500 text-amber-950 shadow-lg shadow-amber-500/30 ring-1 ring-amber-500/40 hover:-translate-y-0.5 hover:bg-amber-400 focus-visible:ring-4 focus-visible:ring-amber-300 transition"
                       onClick={async () => {
                         if (storedEmail) {
                           const currentEmail = form.getValues("email").trim();
