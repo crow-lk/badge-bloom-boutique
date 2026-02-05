@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, type CarouselApi } from "@/components/ui/carousel";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import MintpayBreakdown from "@/components/MintpayBreakdown";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -38,9 +40,12 @@ const ProductDetail = () => {
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
+  const [viewerApi, setViewerApi] = useState<CarouselApi | null>(null);
 
   const touchStartX = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
+  const didSwipeRef = useRef(false);
 
   const SWIPE_THRESHOLD = 50;
 
@@ -69,6 +74,7 @@ const ProductDetail = () => {
       // Initialize selected size to the first available size
       // This will be set after availableSizes is computed
       setQuantity(1);
+      setIsViewerOpen(false);
     }
   }, [product]);
 
@@ -235,6 +241,28 @@ const ProductDetail = () => {
   );
 
   const showLoading = isLoading && !product;
+  useEffect(() => {
+    if (!viewerApi || !isViewerOpen) return;
+    viewerApi.scrollTo(currentImageIndex, true);
+  }, [viewerApi, isViewerOpen, currentImageIndex]);
+
+  useEffect(() => {
+    if (!viewerApi) return;
+
+    const handleSelect = () => {
+      const nextIndex = viewerApi.selectedScrollSnap();
+      setCurrentImageIndex((prev) => {
+        if (prev === nextIndex) return prev;
+        setFlipDirection(nextIndex > prev ? "forward" : "backward");
+        return nextIndex;
+      });
+    };
+
+    viewerApi.on("select", handleSelect);
+    return () => {
+      viewerApi.off("select", handleSelect);
+    };
+  }, [viewerApi]);
 
   // Get first variant price for loading state
   const getFirstVariantPrice = () => {
@@ -302,8 +330,18 @@ const ProductDetail = () => {
     setFlipDirection(index > currentImageIndex ? "forward" : "backward");
     setCurrentImageIndex(Math.max(0, Math.min(product.images.length - 1, index)));
   };
+
+  const handleHeroClick = () => {
+    if (didSwipeRef.current) {
+      didSwipeRef.current = false;
+      return;
+    }
+    setIsViewerOpen(true);
+  };
   const statusVariant = product.status.toLowerCase() === "active" ? "outline" : "secondary";
-  const collectionLabel = product.collection_id ? `Collection ${product.collection_id}` : "New arrival";
+  const collectionLabel =
+    product.collection_name?.trim() ||
+    (product.collection_id ? String(product.collection_id) : "New arrival");
   const seasonLabel = displayValue(product.season, "Seasonless");
   const brandLabel = displayValue(product.brand_id, "Aaliyaa Atelier");
   const description = product.description ?? "Description coming soon.";
@@ -389,6 +427,7 @@ const ProductDetail = () => {
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    didSwipeRef.current = false;
     touchStartX.current = e.touches[0].clientX;
   };
 
@@ -401,7 +440,13 @@ const ProductDetail = () => {
 
     const distance = touchStartX.current - touchEndX.current;
 
-    if (Math.abs(distance) < SWIPE_THRESHOLD) return;
+    if (Math.abs(distance) < SWIPE_THRESHOLD) {
+      touchStartX.current = null;
+      touchEndX.current = null;
+      return;
+    }
+
+    didSwipeRef.current = true;
 
     if (distance > 0 && canGoNext) {
       // swipe left → next
@@ -475,9 +520,10 @@ const ProductDetail = () => {
                       src={heroImage}
                       alt={product.name}
                       className={cn(
-                        "h-full w-full object-cover transition duration-500",
+                        "h-full w-full cursor-zoom-in object-cover transition duration-500",
                         flipDirection === "forward" ? "animate-flip-forward" : "animate-flip-backward",
                       )}
+                      onClick={handleHeroClick}
                     />
                     <div className="pointer-events-none absolute inset-0 flex items-center justify-between px-2 sm:px-3">
                       {canGoPrev ? (
@@ -517,6 +563,32 @@ const ProductDetail = () => {
                   </div>
                 </div>
               </Card>
+
+              <Dialog open={isViewerOpen} onOpenChange={setIsViewerOpen}>
+                <DialogContent className="left-0 top-0 h-[100dvh] w-screen max-w-none translate-x-0 translate-y-0 border-0 bg-black p-0 sm:rounded-none [&>button]:right-4 [&>button]:top-4 [&>button]:rounded-full [&>button]:bg-black/60 [&>button]:text-white [&>button]:backdrop-blur-sm [&>button]:hover:bg-black/80">
+                  <Carousel
+                    className="h-full"
+                    setApi={setViewerApi}
+                    opts={{ loop: false }}
+                  >
+                    <CarouselContent className="h-full ml-0">
+                      {product.images.map((image, index) => (
+                        <CarouselItem key={`${image}-${index}`} className="h-full pl-0">
+                          <div className="flex h-[100dvh] w-full items-center justify-center bg-black">
+                            <img
+                              src={image}
+                              alt={`${product.name} full view ${index + 1}`}
+                              className="h-full w-full object-contain"
+                            />
+                          </div>
+                        </CarouselItem>
+                      ))}
+                    </CarouselContent>
+                    <CarouselPrevious className="left-3 top-1/2 -translate-y-1/2 border-white/30 bg-black/40 text-white hover:bg-black/60 hidden sm:inline-flex" />
+                    <CarouselNext className="right-3 top-1/2 -translate-y-1/2 border-white/30 bg-black/40 text-white hover:bg-black/60 hidden sm:inline-flex" />
+                  </Carousel>
+                </DialogContent>
+              </Dialog>
 
               <div className="mx-auto w-full max-w-[480px] md:max-w-[520px]">
                 <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory touch-pan-x [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
@@ -819,7 +891,7 @@ const ProductDetail = () => {
                   <div className="space-y-2 p-4 md:p-5">
                     <div className="flex items-center justify-between">
                       <p className="text-sm uppercase tracking-[0.25em] text-muted-foreground">
-                        {displayValue(item.collection_id, "Collection")}
+                        {displayValue(item.collection_name ?? item.collection_id, "Collection")}
                       </p>
                       <Badge variant="outline">{displayValue(item.status)}</Badge>
                     </div>

@@ -51,7 +51,7 @@ const MintpayBreakdown = ({ price, className, label = "Mintpay" }: MintpayBreakd
     <div className={["flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground", className].filter(Boolean).join(" ")}>
       {mintpayLogo ? (
         <span className="inline-flex items-center">
-          <img src={mintpayLogo} alt={label} className="h-5 w-auto" />
+          <img src={mintpayLogo} alt={label} className="h-6 w-auto" />
         </span>
       ) : (
         <span className="font-medium text-emerald-600">{label}</span>
