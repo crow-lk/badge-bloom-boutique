@@ -9,6 +9,7 @@ const ProductGrid = () => {
   const { data, isLoading, isError } = useProducts();
 
   const products = data?.length ? data : !isLoading ? fallbackProducts : [];
+  const visibleProducts = products.filter((product) => (product.status ?? "").toLowerCase() !== "draft");
 
   return (
     <section id="shop" className="py-24 bg-background">
@@ -44,7 +45,7 @@ const ProductGrid = () => {
                   </div>
                 </div>
               ))
-            : products.map((product) => (
+            : visibleProducts.map((product) => (
                 <ProductCard
                   key={product.slug}
                   image={product.image}
