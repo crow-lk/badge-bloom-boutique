@@ -38,7 +38,7 @@ const ProductGrid = () => {
           {isLoading && !products.length
             ? loadingSlots.map((_, index) => (
                 <div key={`product-skeleton-${index}`} className="space-y-4">
-                  <Skeleton className="h-80 w-full rounded-xl" />
+                  <Skeleton className="w-full aspect-[3/4] rounded-xl" />
                   <div className="space-y-2">
                     <Skeleton className="h-4 w-3/4" />
                     <Skeleton className="h-3 w-1/3" />
