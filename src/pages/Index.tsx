@@ -13,9 +13,10 @@ import { Link } from "react-router-dom";
 const Index = () => {
   const { data } = useProducts();
   const products: Product[] = data?.length ? data : fallbackProducts;
-  const spotlight = products[0] ?? fallbackProducts[0];
-  const secondaryLook = products[1] ?? fallbackProducts[1];
-  const tertiaryLook = products[2] ?? fallbackProducts[2];
+  const visibleProducts = products.filter((product) => (product.status ?? "").toLowerCase() !== "draft");
+  const spotlight = visibleProducts[0] ?? fallbackProducts[0];
+  const secondaryLook = visibleProducts[1] ?? fallbackProducts[1];
+  const tertiaryLook = visibleProducts[2] ?? fallbackProducts[2];
   const spotlightHighlights = spotlight.highlights?.length
     ? spotlight.highlights
     : ["Limited availability", "Crafted with care"];

@@ -16,7 +16,7 @@ const ProductCard = ({ image, name, price, priceValue, sizes, slug }: ProductCar
 
   const card = (
     <Card className="group relative h-full overflow-hidden border-0 bg-card transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
-      <div className="aspect-square overflow-hidden bg-muted relative">
+      <div className="aspect-[3/4] overflow-hidden bg-muted relative">
         <img
           src={image}
           alt={name}
