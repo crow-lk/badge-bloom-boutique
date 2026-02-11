@@ -110,6 +110,17 @@ const getFirstVariantPrice = (variants?: ProductVariant[]) => {
 const buildGallery = (index: number) =>
   Array.from({ length: 4 }, (_, offset) => fallbackImages[(index + offset) % fallbackImages.length]);
 
+const deriveSizes = (product: ApiProduct) => {
+  const fromSizes =
+    product.sizes?.map((size) => (size == null ? "" : String(size).trim())).filter(Boolean) ?? [];
+  const fromVariants =
+    product.variants
+      ?.map((variant) => variant.size_name || variant.size_id?.toString() || "")
+      .map((size) => size.trim())
+      .filter(Boolean) ?? [];
+  return Array.from(new Set([...fromSizes, ...fromVariants]));
+};
+
 const buildHighlights = (product: ApiProduct) => {
   const items: string[] = [];
   if (product.season) {
@@ -132,7 +143,7 @@ const buildHighlights = (product: ApiProduct) => {
 
 const normalizeProduct = (product: ApiProduct, index: number): Product => {
   const gallery = product.images?.length ? product.images : buildGallery(index);
-  const sizes = product.sizes?.length ? product.sizes : ["XS", "S", "M", "L", "XL"];
+  const sizes = deriveSizes(product);
   const inquiryOnly = Boolean(product.inquiry_only);
   const showPriceInquiryMode =
     product.show_price_inquiry_mode == null ? !inquiryOnly : Boolean(product.show_price_inquiry_mode);

@@ -115,8 +115,17 @@ const Products = () => {
   }, [categoriesData]);
 
   const sizeOptions = useMemo<SelectOption[]>(() => {
-    const uniqueSizes = Array.from(new Set(activeProducts.flatMap((p) => p.sizes ?? []).filter(Boolean)));
-    return uniqueSizes.map((size) => ({ label: size, value: size }));
+    const sizeSet = new Set<string>();
+    activeProducts.forEach((product) => {
+      const baseSizes = product.sizes?.length
+        ? product.sizes
+        : product.variants?.map((variant) => variant.size_name || variant.size_id?.toString() || "") ?? [];
+      baseSizes
+        .map((size) => (size == null ? "" : String(size).trim()))
+        .filter(Boolean)
+        .forEach((size) => sizeSet.add(size));
+    });
+    return Array.from(sizeSet).map((size) => ({ label: size, value: size }));
   }, [activeProducts]);
 
   const selectedCollectionOption = collectionOptions.find((option) => option.value === filters.collection);
