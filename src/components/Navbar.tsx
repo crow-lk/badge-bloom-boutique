@@ -1,5 +1,5 @@
 import logo from "@/assets/aaliyaa_logo.png";
-import { filterActiveProducts } from "@/lib/product-status";
+import { filterActiveProducts, sortProductsNewestFirst } from "@/lib/product-status";
 import { fallbackProducts, getProductDisplayPrice, useProducts } from "@/hooks/use-products";
 import { clearStoredAuth, getStoredToken, getStoredUser, logout, type AuthUser } from "@/lib/auth";
 import { LogOut, Menu, Search, Settings, ShoppingBag, User, X } from "lucide-react";
@@ -27,7 +27,7 @@ const Navbar = () => {
     if (!isLoading) return fallbackProducts;
     return [];
   }, [data, isLoading]);
-  const activeProducts = useMemo(() => filterActiveProducts(products), [products]);
+  const activeProducts = useMemo(() => sortProductsNewestFirst(filterActiveProducts(products)), [products]);
 
   const filteredProducts = useMemo(() => {
     const term = query.trim().toLowerCase();

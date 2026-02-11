@@ -11,7 +11,7 @@ import MintpayBreakdown from "@/components/MintpayBreakdown";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { filterActiveProducts } from "@/lib/product-status";
+import { filterActiveProducts, sortProductsNewestFirst } from "@/lib/product-status";
 import { fallbackProducts, getProductDisplayPrice, useProducts, type Color, type Product } from "@/hooks/use-products";
 import { getStoredToken } from "@/lib/auth";
 import { addCartItem } from "@/lib/cart";
@@ -55,7 +55,7 @@ const ProductDetail = () => {
     if (!isLoading) return fallbackProducts;
     return [] as Product[];
   }, [data, isLoading]);
-  const activeProducts = useMemo(() => filterActiveProducts(products), [products]);
+  const activeProducts = useMemo(() => sortProductsNewestFirst(filterActiveProducts(products)), [products]);
 
   const product = useMemo(() => {
     if (!activeProducts.length) return undefined;
