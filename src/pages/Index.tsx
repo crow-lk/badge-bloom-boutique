@@ -16,9 +16,17 @@ const Index = () => {
   const products: Product[] = data?.length ? data : !isLoading ? fallbackProducts : [];
   const visibleProducts = filterActiveProducts(products);
   const fallbackActive = filterActiveProducts(fallbackProducts);
-  const spotlight = visibleProducts[0] ?? fallbackActive[0];
+  const spotlight =
+    visibleProducts.find((item) => String(item.id) === "26") ??
+    fallbackActive.find((item) => String(item.id) === "26") ??
+    visibleProducts[0] ??
+    fallbackActive[0];
   const secondaryLook = visibleProducts[1] ?? fallbackActive[1];
   const tertiaryLook = visibleProducts[2] ?? fallbackActive[2];
+  const spotlightImages =
+    String(spotlight.id) === "26"
+      ? ["/highlight01.jpg", "/highlight02.jpg", "/highlight03.JPG"]
+      : [spotlight.images?.[0] ?? spotlight.image, spotlight.images?.[1], spotlight.images?.[2]].filter(Boolean);
   const spotlightHighlights = spotlight.highlights?.length
     ? spotlight.highlights
     : ["Limited availability", "Crafted with care"];
@@ -120,7 +128,7 @@ const Index = () => {
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2 mt-6 lg:mt-auto">
-              {[spotlight.images?.[1] ?? secondaryLook.image, spotlight.images?.[2] ?? tertiaryLook.image].map(
+              {[spotlightImages[1] ?? secondaryLook.image, spotlightImages[2] ?? tertiaryLook.image].map(
                 (image, index) => (
                   <div
                     key={`spotlight-detail-${index}`}
@@ -140,7 +148,7 @@ const Index = () => {
           <div className="w-full sm:w-4/5 max-w-[720px] lg:max-w-none lg:order-1">
             <div className="overflow-hidden rounded-3xl border border-border/70 bg-muted h-full">
               <img
-                src={spotlight.images?.[0] ?? spotlight.image}
+                src={spotlightImages[0] ?? spotlight.image}
                 alt={spotlight.name}
                 className="h-full w-full object-cover transition duration-700 hover:scale-105"
               />
