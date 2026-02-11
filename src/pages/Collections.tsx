@@ -23,6 +23,17 @@ type ResolvedCollection = {
   hasProducts: boolean;
 };
 
+const buildCollectionBrowseUrl = (collection: Collection | null) => {
+  if (!collection) return "/products/all";
+  const raw =
+    collection.slug?.trim() ||
+    String(collection.id ?? "").trim() ||
+    collection.name?.trim() ||
+    "";
+  if (!raw) return "/products/all";
+  return `/products/all?collection=${encodeURIComponent(raw)}`;
+};
+
 const Collections = () => {
   const { data, isLoading, isError } = useCollections();
   const {
@@ -389,7 +400,7 @@ const CollectionCard = ({ collection, onSelect }: { collection: Collection; onSe
         <button type="button" onClick={onSelect} className="text-muted-foreground transition hover:text-foreground">
           View details
         </button>
-        <Link to="/products/all" className="text-primary transition hover:text-primary/80">
+        <Link to={buildCollectionBrowseUrl(collection)} className="text-primary transition hover:text-primary/80">
           Shop edit
         </Link>
       </div>
@@ -529,7 +540,7 @@ const CollectionDetailPanel = ({
       )}
 
       <Button asChild className="w-full">
-        <Link to="/products/all">Browse collection</Link>
+        <Link to={buildCollectionBrowseUrl(collection)}>Browse collection</Link>
       </Button>
     </div>
   );
