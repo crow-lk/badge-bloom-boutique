@@ -9,7 +9,8 @@ import { useCollections } from "@/hooks/use-collections";
 import { fallbackCategories, useCategories } from "@/hooks/use-categories";
 import { filterActiveProducts } from "@/lib/product-status";
 import { fallbackProducts, getProductDisplayPrice, useProducts, type Product } from "@/hooks/use-products";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 const displayValue = (value: string | number | null | undefined, fallback = "—") =>
   value === undefined || value === null || value === "" ? fallback : String(value);
@@ -60,6 +61,7 @@ const Products = () => {
   const { data, isLoading, isError } = useProducts();
   const { data: collectionsData } = useCollections();
   const { data: categoriesData } = useCategories();
+  const [searchParams] = useSearchParams();
 
   const products: Product[] = useMemo(() => {
     if (data?.length) return data;
@@ -73,6 +75,8 @@ const Products = () => {
     category: "",
     size: "",
   });
+  const appliedCollectionRef = useRef<string | null>(null);
+  const collectionParam = searchParams.get("collection")?.trim() ?? "";
 
   const collectionOptions = useMemo<FilterOption[]>(() => {
     const source = collectionsData ?? [];
@@ -117,6 +121,25 @@ const Products = () => {
 
   const selectedCollectionOption = collectionOptions.find((option) => option.value === filters.collection);
   const selectedCategoryOption = categoryOptions.find((option) => option.value === filters.category);
+  const matchedCollectionValue = useMemo(() => {
+    if (!collectionParam) return "";
+    const match = collectionOptions.find((option) => matchValueAgainstKeys(collectionParam, option.matchKeys));
+    return match?.value ?? "";
+  }, [collectionOptions, collectionParam]);
+
+  useEffect(() => {
+    if (!collectionParam) {
+      if (appliedCollectionRef.current) {
+        appliedCollectionRef.current = null;
+        setFilters((prev) => ({ ...prev, collection: "" }));
+      }
+      return;
+    }
+    if (!matchedCollectionValue) return;
+    if (appliedCollectionRef.current === collectionParam) return;
+    appliedCollectionRef.current = collectionParam;
+    setFilters((prev) => ({ ...prev, collection: matchedCollectionValue }));
+  }, [collectionParam, matchedCollectionValue]);
 
   const filteredProducts = useMemo(() => {
     return activeProducts.filter((product) => {
