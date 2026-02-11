@@ -1,5 +1,6 @@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
+import { filterActiveProducts } from "@/lib/product-status";
 import { fallbackProducts, useProducts, getProductDisplayPrice } from "@/hooks/use-products";
 import ProductCard from "./ProductCard";
 
@@ -9,7 +10,7 @@ const ProductGrid = () => {
   const { data, isLoading, isError } = useProducts();
 
   const products = data?.length ? data : !isLoading ? fallbackProducts : [];
-  const visibleProducts = products.filter((product) => (product.status ?? "").toLowerCase() !== "draft");
+  const visibleProducts = filterActiveProducts(products);
 
   return (
     <section id="shop" className="py-24 bg-background">

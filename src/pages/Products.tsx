@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCollections } from "@/hooks/use-collections";
 import { fallbackCategories, useCategories } from "@/hooks/use-categories";
+import { filterActiveProducts } from "@/lib/product-status";
 import { fallbackProducts, getProductDisplayPrice, useProducts, type Product } from "@/hooks/use-products";
 import { useMemo, useState } from "react";
 
@@ -44,7 +45,6 @@ type FilterState = {
   collection: string;
   category: string;
   size: string;
-  status: string;
 };
 
 type SelectOption = {
@@ -66,12 +66,12 @@ const Products = () => {
     if (!isLoading) return fallbackProducts;
     return [];
   }, [data, isLoading]);
+  const activeProducts = useMemo(() => filterActiveProducts(products), [products]);
 
   const [filters, setFilters] = useState<FilterState>({
     collection: "",
     category: "",
     size: "",
-    status: "",
   });
 
   const collectionOptions = useMemo<FilterOption[]>(() => {
@@ -111,44 +111,30 @@ const Products = () => {
   }, [categoriesData]);
 
   const sizeOptions = useMemo<SelectOption[]>(() => {
-    const uniqueSizes = Array.from(new Set(products.flatMap((p) => p.sizes ?? []).filter(Boolean)));
+    const uniqueSizes = Array.from(new Set(activeProducts.flatMap((p) => p.sizes ?? []).filter(Boolean)));
     return uniqueSizes.map((size) => ({ label: size, value: size }));
-  }, [products]);
-
-  const statusOptions = useMemo<SelectOption[]>(() => {
-    const uniqueStatuses = Array.from(
-      new Set(
-        products
-          .map((p) => displayValue(p.status, "active"))
-          .map((status) => status.toString().trim())
-          .filter(Boolean),
-      ),
-    );
-    return uniqueStatuses.map((status) => ({ label: status, value: status }));
-  }, [products]);
+  }, [activeProducts]);
 
   const selectedCollectionOption = collectionOptions.find((option) => option.value === filters.collection);
   const selectedCategoryOption = categoryOptions.find((option) => option.value === filters.category);
 
   const filteredProducts = useMemo(() => {
-    return products.filter((product) => {
+    return activeProducts.filter((product) => {
       const matchesCollection =
         !selectedCollectionOption ||
         matchValueAgainstKeys(product.collection_id, selectedCollectionOption.matchKeys);
       const matchesCategory =
         !selectedCategoryOption || matchValueAgainstKeys(product.category_id, selectedCategoryOption.matchKeys);
-      const matchesStatus = !filters.status || displayValue(product.status, "active") === filters.status;
       const matchesSize = !filters.size || (product.sizes ?? []).includes(filters.size);
-      return matchesCollection && matchesCategory && matchesStatus && matchesSize;
+      return matchesCollection && matchesCategory && matchesSize;
     });
-  }, [filters.size, filters.status, products, selectedCategoryOption, selectedCollectionOption]);
+  }, [activeProducts, filters.size, selectedCategoryOption, selectedCollectionOption]);
 
   const resetFilters = () =>
     setFilters({
       collection: "",
       category: "",
       size: "",
-      status: "",
     });
 
   const showLoading = isLoading && !products.length;
@@ -162,7 +148,7 @@ const Products = () => {
           <div className="space-y-2 text-center">
             <p className="text-[11px] uppercase tracking-[0.35em] text-muted-foreground">Browse</p>
             <h1 className="text-3xl font-light tracking-tight md:text-4xl">All Products</h1>
-            <p className="text-sm text-muted-foreground md:text-base">Filter by collection, category, status, or size.</p>
+            <p className="text-sm text-muted-foreground md:text-base">Filter by collection, category, or size.</p>
           </div>
 
           {isError && (
@@ -173,7 +159,7 @@ const Products = () => {
           )}
 
           <Card className="border border-border bg-card/80 p-4 shadow-sm">
-            <div className="grid gap-3 md:grid-cols-4">
+            <div className="grid gap-3 md:grid-cols-3">
               <Select
                 label="Collection"
                 value={filters.collection}
@@ -192,16 +178,10 @@ const Products = () => {
                 onChange={(value) => setFilters((prev) => ({ ...prev, size: value }))}
                 options={sizeOptions}
               />
-              <Select
-                label="Status"
-                value={filters.status}
-                onChange={(value) => setFilters((prev) => ({ ...prev, status: value }))}
-                options={statusOptions}
-              />
             </div>
             <div className="mt-4 flex items-center justify-between">
               <p className="text-xs text-muted-foreground">
-                Showing {filteredProducts.length} of {products.length || 0} items
+                Showing {filteredProducts.length} of {activeProducts.length || 0} items
               </p>
               <Button variant="outline" size="sm" onClick={resetFilters} disabled={!products.length}>
                 Clear filters

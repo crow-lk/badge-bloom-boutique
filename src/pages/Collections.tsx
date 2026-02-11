@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCollection, useCollections, type Collection } from "@/hooks/use-collections";
+import { filterActiveProducts } from "@/lib/product-status";
 import { fallbackProducts, getProductDisplayPrice, useProducts, type Product } from "@/hooks/use-products";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -40,6 +41,7 @@ const Collections = () => {
     if (!isProductsLoading) return fallbackProducts;
     return [];
   }, [productData, isProductsLoading]);
+  const activeProducts = useMemo(() => filterActiveProducts(products), [products]);
 
   const normalizeRawKey = useCallback((value?: string | number | null) => {
     if (value === undefined || value === null) return "";
@@ -63,12 +65,12 @@ const Collections = () => {
       if (bucket) bucket.push(product);
       else map.set(key, [product]);
     };
-    products.forEach((product) => {
+    activeProducts.forEach((product) => {
       addToMap(normalizeRawKey(product.collection_id), product);
       addToMap(normalizeSlugKey(product.collection_id), product);
     });
     return map;
-  }, [normalizeRawKey, normalizeSlugKey, products]);
+  }, [activeProducts, normalizeRawKey, normalizeSlugKey]);
 
   const resolveCollection = useCallback(
     (collection: Collection | null): ResolvedCollection => {
