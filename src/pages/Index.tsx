@@ -7,15 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import MintpayBreakdown from "@/components/MintpayBreakdown";
-import { filterActiveProducts } from "@/lib/product-status";
+import { filterActiveProducts, sortProductsNewestFirst } from "@/lib/product-status";
 import { fallbackProducts, getProductDisplayPrice, useProducts, type Product } from "@/hooks/use-products";
 import { Link } from "react-router-dom";
 
 const Index = () => {
   const { data, isLoading } = useProducts();
   const products: Product[] = data?.length ? data : !isLoading ? fallbackProducts : [];
-  const visibleProducts = filterActiveProducts(products);
-  const fallbackActive = filterActiveProducts(fallbackProducts);
+  const visibleProducts = sortProductsNewestFirst(filterActiveProducts(products));
+  const fallbackActive = sortProductsNewestFirst(filterActiveProducts(fallbackProducts));
   const spotlight =
     visibleProducts.find((item) => String(item.id) === "26") ??
     fallbackActive.find((item) => String(item.id) === "26") ??

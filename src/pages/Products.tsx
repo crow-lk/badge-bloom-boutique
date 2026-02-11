@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCollections } from "@/hooks/use-collections";
 import { fallbackCategories, useCategories } from "@/hooks/use-categories";
-import { filterActiveProducts } from "@/lib/product-status";
+import { filterActiveProducts, sortProductsNewestFirst } from "@/lib/product-status";
 import { fallbackProducts, getProductDisplayPrice, useProducts, type Product } from "@/hooks/use-products";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -68,7 +68,7 @@ const Products = () => {
     if (!isLoading) return fallbackProducts;
     return [];
   }, [data, isLoading]);
-  const activeProducts = useMemo(() => filterActiveProducts(products), [products]);
+  const activeProducts = useMemo(() => sortProductsNewestFirst(filterActiveProducts(products)), [products]);
 
   const [filters, setFilters] = useState<FilterState>({
     collection: "",
