@@ -3,6 +3,7 @@ import pantsImage from "@/assets/product-pants.jpg";
 import sweaterImage from "@/assets/product-sweater.jpg";
 import tshirtImage from "@/assets/product-tshirt.jpg";
 import { API_BASE_URL, getStoredToken } from "@/lib/auth";
+import { isActiveStatus } from "@/lib/product-status";
 import { useQuery } from "@tanstack/react-query";
 
 export type CollectionMetaField = {
@@ -160,6 +161,11 @@ const normalizeCollection = (raw: unknown, index = 0): Collection => {
     : unique([season ? `${season} drop` : undefined, status, "Limited release craftsmanship"].filter(Boolean) as string[]);
 
   const rawProducts = Array.isArray(record.products) ? record.products : [];
+  const activeProducts = rawProducts.filter((product) => {
+    const entry = asRecord(product);
+    const status = pickString(entry.status, entry.state, entry.visibility);
+    return isActiveStatus(status);
+  });
   const productCount =
     pickNumber(
       record.products_count,
@@ -168,9 +174,9 @@ const normalizeCollection = (raw: unknown, index = 0): Collection => {
       record.count,
       record.total_products,
       record.total_items,
-    ) ?? rawProducts.length;
+    ) ?? activeProducts.length;
 
-  const previewProducts: CollectionPreviewProduct[] = rawProducts.slice(0, 4).map((product, productIndex) => {
+  const previewProducts: CollectionPreviewProduct[] = activeProducts.slice(0, 4).map((product, productIndex) => {
     const entry = asRecord(product);
     const productName =
       pickString(entry.name, entry.title, entry.product_name, `Look ${productIndex + 1}`) ?? `Look ${productIndex + 1}`;

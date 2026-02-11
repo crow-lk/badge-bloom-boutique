@@ -7,16 +7,18 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import MintpayBreakdown from "@/components/MintpayBreakdown";
+import { filterActiveProducts } from "@/lib/product-status";
 import { fallbackProducts, getProductDisplayPrice, useProducts, type Product } from "@/hooks/use-products";
 import { Link } from "react-router-dom";
 
 const Index = () => {
-  const { data } = useProducts();
-  const products: Product[] = data?.length ? data : fallbackProducts;
-  const visibleProducts = products.filter((product) => (product.status ?? "").toLowerCase() !== "draft");
-  const spotlight = visibleProducts[0] ?? fallbackProducts[0];
-  const secondaryLook = visibleProducts[1] ?? fallbackProducts[1];
-  const tertiaryLook = visibleProducts[2] ?? fallbackProducts[2];
+  const { data, isLoading } = useProducts();
+  const products: Product[] = data?.length ? data : !isLoading ? fallbackProducts : [];
+  const visibleProducts = filterActiveProducts(products);
+  const fallbackActive = filterActiveProducts(fallbackProducts);
+  const spotlight = visibleProducts[0] ?? fallbackActive[0];
+  const secondaryLook = visibleProducts[1] ?? fallbackActive[1];
+  const tertiaryLook = visibleProducts[2] ?? fallbackActive[2];
   const spotlightHighlights = spotlight.highlights?.length
     ? spotlight.highlights
     : ["Limited availability", "Crafted with care"];

@@ -11,6 +11,7 @@ import MintpayBreakdown from "@/components/MintpayBreakdown";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { filterActiveProducts } from "@/lib/product-status";
 import { fallbackProducts, getProductDisplayPrice, useProducts, type Color, type Product } from "@/hooks/use-products";
 import { getStoredToken } from "@/lib/auth";
 import { addCartItem } from "@/lib/cart";
@@ -54,15 +55,13 @@ const ProductDetail = () => {
     if (!isLoading) return fallbackProducts;
     return [] as Product[];
   }, [data, isLoading]);
+  const activeProducts = useMemo(() => filterActiveProducts(products), [products]);
 
   const product = useMemo(() => {
-    if (!products.length) return undefined;
-    if (slug) {
-      const match = products.find((item) => item.slug === slug);
-      if (match) return match;
-    }
-    return products[0];
-  }, [products, slug]);
+    if (!activeProducts.length) return undefined;
+    if (!slug) return activeProducts[0];
+    return activeProducts.find((item) => item.slug === slug);
+  }, [activeProducts, slug]);
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [flipDirection, setFlipDirection] = useState<"forward" | "backward">("forward");
@@ -236,8 +235,8 @@ const ProductDetail = () => {
       }).format(selectedPrice);
 
   const relatedProducts = useMemo(
-    () => (product ? products.filter((item) => item.slug !== product.slug).slice(0, 3) : []),
-    [product, products],
+    () => (product ? activeProducts.filter((item) => item.slug !== product.slug).slice(0, 3) : []),
+    [product, activeProducts],
   );
 
   const showLoading = isLoading && !product;
@@ -266,8 +265,8 @@ const ProductDetail = () => {
 
   // Get first variant price for loading state
   const getFirstVariantPrice = () => {
-    if (!products.length) return null;
-    const firstProduct = products[0];
+    if (!activeProducts.length) return null;
+    const firstProduct = activeProducts[0];
     const variantPrice = firstProduct.variants?.find((variant) => variant.selling_price != null)?.selling_price;
     return variantPrice ?? firstProduct.price;
   };

@@ -1,4 +1,5 @@
 import logo from "@/assets/aaliyaa_logo.png";
+import { filterActiveProducts } from "@/lib/product-status";
 import { fallbackProducts, getProductDisplayPrice, useProducts } from "@/hooks/use-products";
 import { clearStoredAuth, getStoredToken, getStoredUser, logout, type AuthUser } from "@/lib/auth";
 import { LogOut, Menu, Search, Settings, ShoppingBag, User, X } from "lucide-react";
@@ -26,11 +27,12 @@ const Navbar = () => {
     if (!isLoading) return fallbackProducts;
     return [];
   }, [data, isLoading]);
+  const activeProducts = useMemo(() => filterActiveProducts(products), [products]);
 
   const filteredProducts = useMemo(() => {
     const term = query.trim().toLowerCase();
     if (!term) return [];
-    return products
+    return activeProducts
       .filter((product) => {
         const nameMatch = product.name.toLowerCase().includes(term);
         const collectionMatch = product.collection_id?.toString().toLowerCase().includes(term);
@@ -38,7 +40,7 @@ const Navbar = () => {
         return nameMatch || collectionMatch || categoryMatch;
       })
       .slice(0, 6);
-  }, [products, query]);
+  }, [activeProducts, query]);
 
   const { data: cart, isFetching: isCartFetching } = useCart();
   const cartItems = cart?.items ?? [];
