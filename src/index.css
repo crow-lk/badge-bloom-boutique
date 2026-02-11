@@ -167,4 +167,46 @@ All colors MUST be HSL.
     animation: logo-float 6s ease-in-out infinite;
   }
 
+  @keyframes petal-fall {
+    0% {
+      transform: translate3d(0, -12vh, 0) rotate(var(--petal-rotate));
+      opacity: var(--petal-opacity);
+    }
+    20% {
+      opacity: calc(var(--petal-opacity) + 0.15);
+    }
+    100% {
+      transform: translate3d(var(--petal-drift), 112vh, 0) rotate(calc(var(--petal-rotate) + 360deg));
+      opacity: 0;
+    }
+  }
+
+  .rose-petals {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 30;
+  }
+
+  .rose-petal {
+    position: absolute;
+    top: 0;
+    width: var(--petal-size);
+    height: calc(var(--petal-size) * 1.25);
+    background: radial-gradient(circle at 25% 25%, rgba(255, 225, 225, 0.85), rgba(255, 0, 0, 0.98));
+    border-radius: 60% 40% 60% 40%;
+    box-shadow: 0 10px 24px rgba(60, 4, 18, 0.45);
+    animation: petal-fall linear infinite;
+    will-change: transform, opacity;
+    mix-blend-mode: multiply;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .rose-petal {
+      animation: none;
+      opacity: 0;
+    }
+  }
+
 }
