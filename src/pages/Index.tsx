@@ -25,7 +25,7 @@ const Index = () => {
   const tertiaryLook = visibleProducts[2] ?? fallbackActive[2];
   const spotlightImages =
     String(spotlight.id) === "26"
-      ? ["/highlight01.jpg", "/highlight02.jpg", "/highlight03.JPG"]
+      ? ["/highlight01.webp", "/highlight02.webp", "/highlight03.webp"]
       : [spotlight.images?.[0] ?? spotlight.image, spotlight.images?.[1], spotlight.images?.[2]].filter(Boolean);
   const spotlightHighlights = spotlight.highlights?.length
     ? spotlight.highlights
