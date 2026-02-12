@@ -1,16 +1,67 @@
+import { useEffect, useState } from "react";
 import heroImage from "@/assets/hero-image.jpg";
 import logo from "@/assets/aaliyaa_logo.png";
 import { Button } from "@/components/ui/button";
+import { fetchHeroImageUrl } from "@/lib/settings";
 import { Link } from "react-router-dom";
 
 const Hero = () => {
+  const [heroUrl, setHeroUrl] = useState(heroImage);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let isActive = true;
+
+    const loadHeroImage = async () => {
+      try {
+        const nextUrl = await fetchHeroImageUrl(controller.signal);
+
+        if (!isActive) return;
+        if (!nextUrl) {
+          setIsLoading(false);
+          return;
+        }
+
+        const image = new Image();
+        image.onload = () => {
+          if (!isActive) return;
+          setHeroUrl(nextUrl);
+          setIsLoading(false);
+        };
+        image.onerror = () => {
+          if (!isActive) return;
+          setIsLoading(false);
+        };
+        image.src = nextUrl;
+      } catch (error) {
+        if (!isActive) return;
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        console.warn("Unable to load hero image settings.", error);
+        setIsLoading(false);
+      }
+    };
+
+    loadHeroImage();
+
+    return () => {
+      isActive = false;
+      controller.abort();
+    };
+  }, []);
+
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden" aria-busy={isLoading}>
       <div
         className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: `url(${heroImage})` }}
+        style={{ backgroundImage: `url(${heroUrl})` }}
       >
-        <div className="absolute inset-0 bg-background/40" />
+        <div
+          className={`absolute inset-0 bg-muted/50 transition-opacity duration-500 ${
+            isLoading ? "opacity-100" : "opacity-0"
+          }`}
+          aria-hidden="true"
+        />
       </div>
 
       <div className="relative z-10 container mx-auto px-6 text-center">
