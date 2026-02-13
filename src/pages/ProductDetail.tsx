@@ -763,8 +763,7 @@ const ProductDetail = () => {
                     {adding ? "Adding..." : "Add to bag"}
                   </Button>
                   <Button
-                    variant="outline"
-                    className="flex-1 h-11 text-sm md:h-12 border-border bg-transparent/20 hover:bg-muted"
+                    className="flex-1 h-11 text-sm md:h-12 bg-primary text-primary-foreground border border-black shadow-md hover:bg-primary/90 transition-colors duration-200 disabled:opacity-60"
                     onClick={handleBuyNow}
                     disabled={adding}
                   >
