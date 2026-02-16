@@ -522,6 +522,8 @@ const ProductDetail = () => {
                         "h-full w-full cursor-zoom-in object-cover transition duration-500",
                         flipDirection === "forward" ? "animate-flip-forward" : "animate-flip-backward",
                       )}
+                      loading="eager"
+                      decoding="async"
                       onClick={handleHeroClick}
                     />
                     <div className="pointer-events-none absolute inset-0 flex items-center justify-between px-2 sm:px-3">
@@ -564,29 +566,33 @@ const ProductDetail = () => {
               </Card>
 
               <Dialog open={isViewerOpen} onOpenChange={setIsViewerOpen}>
-                <DialogContent className="left-0 top-0 h-[100dvh] w-screen max-w-none translate-x-0 translate-y-0 border-0 bg-black p-0 sm:rounded-none [&>button]:right-4 [&>button]:top-4 [&>button]:rounded-full [&>button]:bg-black/60 [&>button]:text-white [&>button]:backdrop-blur-sm [&>button]:hover:bg-black/80">
-                  <Carousel
-                    className="h-full"
-                    setApi={setViewerApi}
-                    opts={{ loop: false }}
-                  >
-                    <CarouselContent className="h-full ml-0">
-                      {product.images.map((image, index) => (
-                        <CarouselItem key={`${image}-${index}`} className="h-full pl-0">
-                          <div className="flex h-[100dvh] w-full items-center justify-center bg-black">
-                            <img
-                              src={image}
-                              alt={`${product.name} full view ${index + 1}`}
-                              className="h-full w-full object-contain"
-                            />
-                          </div>
-                        </CarouselItem>
-                      ))}
-                    </CarouselContent>
-                    <CarouselPrevious className="left-3 top-1/2 -translate-y-1/2 border-white/30 bg-black/40 text-white hover:bg-black/60 hidden sm:inline-flex" />
-                    <CarouselNext className="right-3 top-1/2 -translate-y-1/2 border-white/30 bg-black/40 text-white hover:bg-black/60 hidden sm:inline-flex" />
-                  </Carousel>
-                </DialogContent>
+                {isViewerOpen && (
+                  <DialogContent className="left-0 top-0 h-[100dvh] w-screen max-w-none translate-x-0 translate-y-0 border-0 bg-black p-0 sm:rounded-none [&>button]:right-4 [&>button]:top-4 [&>button]:rounded-full [&>button]:bg-black/60 [&>button]:text-white [&>button]:backdrop-blur-sm [&>button]:hover:bg-black/80">
+                    <Carousel
+                      className="h-full"
+                      setApi={setViewerApi}
+                      opts={{ loop: false }}
+                    >
+                      <CarouselContent className="h-full ml-0">
+                        {product.images.map((image, index) => (
+                          <CarouselItem key={`${image}-${index}`} className="h-full pl-0">
+                            <div className="flex h-[100dvh] w-full items-center justify-center bg-black">
+                              <img
+                                src={image}
+                                alt={`${product.name} full view ${index + 1}`}
+                                className="h-full w-full object-contain"
+                                loading="lazy"
+                                decoding="async"
+                              />
+                            </div>
+                          </CarouselItem>
+                        ))}
+                      </CarouselContent>
+                      <CarouselPrevious className="left-3 top-1/2 -translate-y-1/2 border-white/30 bg-black/40 text-white hover:bg-black/60 hidden sm:inline-flex" />
+                      <CarouselNext className="right-3 top-1/2 -translate-y-1/2 border-white/30 bg-black/40 text-white hover:bg-black/60 hidden sm:inline-flex" />
+                    </Carousel>
+                  </DialogContent>
+                )}
               </Dialog>
 
               <div className="mx-auto w-full max-w-[480px] md:max-w-[520px]">
@@ -607,6 +613,8 @@ const ProductDetail = () => {
                         src={image}
                         alt={`${product.name} alt ${index + 1}`}
                         className="h-14 w-14 object-cover transition duration-300 group-hover:scale-105 sm:h-16 sm:w-16 md:h-20 md:w-20"
+                        loading="lazy"
+                        decoding="async"
                       />
                     </button>
                   ))}
@@ -884,6 +892,8 @@ const ProductDetail = () => {
                       src={item.images[0]}
                       alt={item.name}
                       className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                      loading="lazy"
+                      decoding="async"
                     />
                   </div>
                   <div className="space-y-2 p-4 md:p-5">
