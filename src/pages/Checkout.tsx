@@ -138,17 +138,9 @@ const buildShippingPayload = (form: ContactFormState, isFirstAddress: boolean): 
 
 const isFiniteAmount = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value);
 
-const COLOMBO_CITY_TOKEN = "colombo";
-const COLOMBO_SHIPPING_TOTAL = 0;
-const OUTSIDE_COLOMBO_SHIPPING_TOTAL = 350;
+const FLAT_SHIPPING_TOTAL = 350;
 
-const calculateShippingTotal = (city?: string | null) => {
-  const normalizedCity = (city ?? "").trim().toLowerCase();
-  if (!normalizedCity) return COLOMBO_SHIPPING_TOTAL;
-  return normalizedCity.includes(COLOMBO_CITY_TOKEN)
-    ? COLOMBO_SHIPPING_TOTAL
-    : OUTSIDE_COLOMBO_SHIPPING_TOTAL;
-};
+const calculateShippingTotal = (_city?: string | null) => FLAT_SHIPPING_TOTAL;
 
 const REQUIRED_CONTACT_FIELDS: Array<{ key: keyof ContactFormState; label: string }> = [
   { key: "firstName", label: "First name" },
