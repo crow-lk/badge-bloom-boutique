@@ -1,11 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import heroImage from "@/assets/hero-image.jpg";
-import logo from "@/assets/aaliyaa_logo.png";
-import { Button } from "@/components/ui/button";
 import { fetchHeroImageUrls } from "@/lib/settings";
-import { Link } from "react-router-dom";
-
 
 const SLIDESHOW_INTERVAL = 3500; // ms
 
@@ -24,7 +20,6 @@ const Hero = () => {
       try {
         const { image_urls, mobile_image_urls } = await fetchHeroImageUrls(controller.signal);
         if (!isActive) return;
-        // Use mobile images if on mobile, else desktop
         if (isMobile && mobile_image_urls && mobile_image_urls.length > 0) {
           setHeroUrls(mobile_image_urls);
         } else if (image_urls && image_urls.length > 0) {
@@ -47,27 +42,37 @@ const Hero = () => {
       isActive = false;
       controller.abort();
     };
-  // Re-run when isMobile changes
   }, [isMobile]);
 
   // Slideshow effect
   useEffect(() => {
     if (heroUrls.length <= 1) return;
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
+    if (intervalRef.current) clearInterval(intervalRef.current);
     intervalRef.current = setInterval(() => {
       setCurrentIdx((idx) => (idx + 1) % heroUrls.length);
     }, SLIDESHOW_INTERVAL);
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
+      if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, [heroUrls]);
 
+  const goToSlide = (idx: number) => {
+    setCurrentIdx(idx);
+    // Reset interval on manual navigation
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (heroUrls.length > 1) {
+      intervalRef.current = setInterval(() => {
+        setCurrentIdx((i) => (i + 1) % heroUrls.length);
+      }, SLIDESHOW_INTERVAL);
+    }
+  };
+
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden" aria-busy={isLoading}>
+    <section
+      className="relative min-h-screen flex items-center justify-center overflow-hidden"
+      aria-busy={isLoading}
+    >
+      {/* Slides */}
       <div className="absolute inset-0 w-full h-full">
         {heroUrls.map((url, idx) => (
           <img
@@ -80,6 +85,7 @@ const Hero = () => {
             draggable={false}
           />
         ))}
+        {/* Loading overlay */}
         <div
           className={`absolute inset-0 bg-muted/50 transition-opacity duration-500 ${
             isLoading ? "opacity-100" : "opacity-0"
@@ -88,38 +94,38 @@ const Hero = () => {
         />
       </div>
 
-      <div className="relative z-10 container mx-auto px-6 text-center">
-        <div className="mx-auto mb-6 flex items-center justify-center">
-          <img
-            src={logo}
-            alt="Aaliyaa logo"
-            className="h-40 w-40 md:h-48 md:w-48 "
-          />
-        </div>
-        <p className="text-lg md:text-xl font-light text-muted-foreground mb-8 max-w-2xl mx-auto">
-          Elegance Redefined
-        </p>
-        <Button
-          asChild
-          size="lg"
-          className="bg-primary hover:bg-primary/90 text-primary-foreground font-light tracking-wide px-8"
+      {/* Dots Navigation — bottom-center, above the fold */}
+      {heroUrls.length > 1 && (
+        <div
+          className="absolute bottom-8 left-0 right-0 z-20 flex justify-center items-center gap-3"
+          role="tablist"
+          aria-label="Slideshow navigation"
         >
-          <Link to="/collections">Explore Collection</Link>
-        </Button>
-        {/* Dots navigation */}
-        {heroUrls.length > 1 && (
-          <div className="flex justify-center mt-6 space-x-2">
-            {heroUrls.map((_, idx) => (
-              <span
-                key={idx}
-                className={`inline-block w-3 h-3 rounded-full transition-all duration-300 ${
-                  idx === currentIdx ? "bg-primary" : "bg-muted"
-                }`}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+          {heroUrls.map((_, idx) => (
+            <button
+              key={idx}
+              role="tab"
+              aria-selected={idx === currentIdx}
+              aria-label={`Go to slide ${idx + 1}`}
+              onClick={() => goToSlide(idx)}
+              className={[
+                "relative rounded-full transition-all duration-500 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-white",
+                idx === currentIdx
+                  ? "w-8 h-4 bg-white shadow-[0_0_12px_4px_rgba(255,255,255,0.7)]"
+                  : "w-4 h-4 bg-white/50 hover:bg-white/80 hover:scale-110",
+              ].join(" ")}
+            >
+              {/* Pulse ring on active dot */}
+              {idx === currentIdx && (
+                <span
+                  className="absolute inset-0 rounded-full bg-white/40 animate-ping"
+                  aria-hidden="true"
+                />
+              )}
+            </button>
+          ))}
+        </div>
+      )}
     </section>
   );
 };
