@@ -69,7 +69,8 @@ const Hero = () => {
 
   return (
     <section
-      className="relative min-h-screen flex items-center justify-center overflow-hidden"
+      className="relative flex items-center justify-center overflow-hidden"
+      style={{ height: "calc(100vh - 72px)" }}
       aria-busy={isLoading}
     >
       {/* Slides */}
