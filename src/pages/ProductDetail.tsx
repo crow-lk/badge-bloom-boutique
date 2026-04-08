@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { filterActiveProducts, sortProductsNewestFirst } from "@/lib/product-status";
 import { fallbackProducts, getProductDisplayPrice, useProducts, type Color, type Product } from "@/hooks/use-products";
+import { useDiscounts, applyDiscountToPrice } from "@/hooks/use-discounts";
 import { getStoredToken } from "@/lib/auth";
 import { addCartItem } from "@/lib/cart";
 import { cn } from "@/lib/utils";
@@ -635,11 +636,41 @@ const ProductDetail = () => {
               </div>
 
               <div className="flex flex-wrap items-center gap-4">
-                <span className="text-2xl font-light md:text-3xl">{selectedPriceLabel}</span>
-                {/* <Badge variant="secondary">{brandLabel}</Badge> */}
+                {(() => {
+                  const { data: discounts } = useDiscounts();
+                  const { discountedPrice, appliedDiscount } = applyDiscountToPrice(selectedPrice, discounts ?? []);
+                  const hasDiscount = discountedPrice != null && appliedDiscount != null;
+
+                  const formatPrice = (value: number) =>
+                    new Intl.NumberFormat("en-LK", {
+                      style: "currency",
+                      currency: "LKR",
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    }).format(value);
+
+                  if (hasDiscount) {
+                    return (
+                      <>
+                        <span className="text-2xl font-light md:text-3xl">
+                          {formatPrice(discountedPrice)}
+                          <span className="ml-2 line-through decoration-destructive/70 text-muted-foreground text-lg">
+                            {selectedPriceLabel}
+                          </span>
+                        </span>
+                        {!inquiryOnly && <MintpayBreakdown price={discountedPrice} />}
+                      </>
+                    );
+                  }
+                  return (
+                    <>
+                      <span className="text-2xl font-light md:text-3xl">{selectedPriceLabel}</span>
+                      {!inquiryOnly && <MintpayBreakdown price={selectedPrice} />}
+                    </>
+                  );
+                })()}
                 {inquiryOnly && <Badge variant="outline">Inquiry only</Badge>}
               </div>
-              {!inquiryOnly && <MintpayBreakdown price={selectedPrice} />}
 
               {!inquiryOnly && (
                 <div className="space-y-4">
@@ -904,7 +935,7 @@ const ProductDetail = () => {
                       <Badge variant="outline">{displayValue(item.status)}</Badge>
                     </div>
                     <h4 className="text-base font-light tracking-wide md:text-lg">{item.name}</h4>
-                    <p className="text-sm text-muted-foreground">{getProductDisplayPrice(item)}</p>
+                    <PriceWithDiscount price={item.price} />
                   </div>
                 </Link>
               ))}
@@ -994,5 +1025,33 @@ const ProductDetailSkeleton = ({ priceLabel }: { priceLabel?: string }) => (
     </Card>
   </div>
 );
+
+const PriceWithDiscount = ({ price }: { price: number | null | undefined }) => {
+  const { data: discounts } = useDiscounts();
+  const { discountedPrice, appliedDiscount } = applyDiscountToPrice(price ?? null, discounts ?? []);
+  const hasDiscount = discountedPrice != null && appliedDiscount != null;
+
+  const formatPrice = (value: number) =>
+    new Intl.NumberFormat("en-LK", {
+      style: "currency",
+      currency: "LKR",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value);
+
+  const displayPrice = getProductDisplayPrice({ price } as Product);
+
+  if (hasDiscount) {
+    return (
+      <span className="text-sm">
+        <span className="text-foreground">{formatPrice(discountedPrice)}</span>
+        <span className="ml-2 line-through decoration-destructive/70 text-muted-foreground">
+          {displayPrice}
+        </span>
+      </span>
+    );
+  }
+  return <span className="text-sm text-muted-foreground">{displayPrice}</span>;
+};
 
 export default ProductDetail;

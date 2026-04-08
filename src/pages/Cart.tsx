@@ -3,6 +3,7 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { formatCartCurrency, useCart } from "@/hooks/use-cart";
+import { useDiscounts, applyDiscountToPrice } from "@/hooks/use-discounts";
 import { fallbackProducts, Product, useProducts } from "@/hooks/use-products";
 import { Link, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
@@ -25,6 +26,7 @@ const Cart = () => {
   const [removingId, setRemovingId] = useState<number | string | null>(null);
   const [selectedSizes, setSelectedSizes] = useState<Record<number | string, string>>({});
   const [selectedColors, setSelectedColors] = useState<Record<number | string, string>>({});
+  const { data: discounts } = useDiscounts();
   // Get available colors for a product
   const getAvailableColors = (product: Product | undefined) => {
     if (!product?.variants) return [];
@@ -104,7 +106,11 @@ const Cart = () => {
       }),
     [normalizedEntries, productLookup],
   );
-  const derivedTotal = cartEntries.reduce((sum, item) => sum + (item.lineTotal ?? 0), 0);
+  const derivedTotal = cartEntries.reduce((sum, item) => {
+    const { discountedPrice } = applyDiscountToPrice(item.price, discounts ?? []);
+    const effectiveUnitPrice = discountedPrice != null ? discountedPrice : (item.price ?? 0);
+    return sum + (effectiveUnitPrice * item.quantity);
+  }, 0);
   const serverTotal = Number.isFinite(cart?.total ?? NaN) ? cart?.total ?? 0 : 0;
   const showTotal =
     cartEntries.length > 0 ? (derivedTotal > 0 ? derivedTotal : serverTotal) : 0;
@@ -282,7 +288,21 @@ const Cart = () => {
                             </td>
                             <td className="px-3 py-3 align-top">
                               {item.price != null
-                                ? formatCartCurrency(item.price, cart?.currency ?? "LKR")
+                                ? (() => {
+                                    const { discountedPrice, appliedDiscount } = applyDiscountToPrice(item.price, discounts ?? []);
+                                    const hasDiscount = discountedPrice != null && appliedDiscount != null;
+                                    const displayPrice = hasDiscount ? discountedPrice! : item.price;
+                                    return hasDiscount ? (
+                                      <span>
+                                        <span className="text-foreground">{formatCartCurrency(displayPrice, cart?.currency ?? "LKR")}</span>
+                                        <span className="ml-1 line-through decoration-destructive/70 text-[10px] text-muted-foreground">
+                                          {formatCartCurrency(item.price, cart?.currency ?? "LKR")}
+                                        </span>
+                                      </span>
+                                    ) : (
+                                      formatCartCurrency(item.price, cart?.currency ?? "LKR")
+                                    );
+                                  })()
                                 : "Price on request"}
                             </td>
                             <td className="px-3 py-3 align-top text-center">
@@ -334,7 +354,20 @@ const Cart = () => {
                               </div>
                             </td>
                             <td className="px-3 py-3 align-top">
-                              {lineTotal != null ? formatCartCurrency(lineTotal, cart?.currency ?? "LKR") : "—"}
+                              {lineTotal != null
+                                ? (() => {
+                                    const { discountedPrice, appliedDiscount } = applyDiscountToPrice(item.price, discounts ?? []);
+                                    const hasDiscount = discountedPrice != null && appliedDiscount != null;
+                                    const displayTotal = hasDiscount && discountedPrice != null ? discountedPrice * item.quantity : lineTotal;
+                                    return hasDiscount ? (
+                                      <span>
+                                        <span className="text-foreground">{formatCartCurrency(displayTotal, cart?.currency ?? "LKR")}</span>
+                                      </span>
+                                    ) : (
+                                      formatCartCurrency(lineTotal, cart?.currency ?? "LKR")
+                                    );
+                                  })()
+                                : "—"}
                             </td>
                             <td className="px-3 py-3 align-top">
                               <button

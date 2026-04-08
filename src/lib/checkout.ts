@@ -81,6 +81,9 @@ export type PlaceOrderInput = {
   shipping_total?: number;
   notes?: string;
   payment_method_id?: number | string;
+  subtotal?: number;
+  discount_total?: number;
+  total?: number;
 };
 
 export type PlaceOrderResponse = {
@@ -99,6 +102,9 @@ export type StoredPayHereCheckout = {
   session_id?: string | null;
   checkout?: Record<string, unknown>;
   created_at: string;
+  subtotal?: number;
+  discount_total?: number;
+  total?: number;
 };
 
 const PAYHERE_STORAGE_KEY = "aaliyaa.payhere.checkout";
@@ -243,6 +249,9 @@ export type StoredMintpayCheckout = {
   session_id?: string | null;
   checkout?: Record<string, unknown>;
   created_at: string;
+  subtotal?: number;
+  discount_total?: number;
+  total?: number;
 };
 
 export const storeMintpayCheckout = (payload: StoredMintpayCheckout) => {

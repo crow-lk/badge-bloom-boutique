@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { formatCartCurrency, useCart } from "@/hooks/use-cart";
+import { useDiscounts, applyDiscountToPrice } from "@/hooks/use-discounts";
 import { usePaymentMethods } from "@/hooks/use-payment-methods";
 import { API_BASE_URL, getStoredToken, getStoredUser } from "@/lib/auth";
 import {
@@ -138,7 +139,7 @@ const buildShippingPayload = (form: ContactFormState, isFirstAddress: boolean): 
 
 const isFiniteAmount = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value);
 
-const FLAT_SHIPPING_TOTAL = 350;
+const FLAT_SHIPPING_TOTAL = 400;
 
 const calculateShippingTotal = (_city?: string | null) => FLAT_SHIPPING_TOTAL;
 
@@ -280,6 +281,7 @@ const Checkout = () => {
     isError: paymentMethodsError,
   } = usePaymentMethods();
   const { data: cart, isLoading: cartLoading } = useCart();
+  const { data: discounts } = useDiscounts();
 
   useEffect(() => {
     if (!storedEmail) return;
@@ -400,25 +402,27 @@ const Checkout = () => {
         (item.price != null ? Number((item.price * item.quantity).toFixed(2)) : undefined);
       return { ...item, lineTotal: fallbackLineTotal };
     });
-  }, [cart?.items]);
+  }, [cart?.items, discounts]);
   const orderCurrency = cart?.currency ?? "LKR";
   const cartSubtotal = cart?.subtotal;
   const cartTotal = cart?.total;
-  const derivedSubtotal = summaryItems.reduce((sum, item) => sum + (item.lineTotal ?? 0), 0);
+  const derivedSubtotal = summaryItems.reduce((sum, item) => {
+    const { discountedPrice } = applyDiscountToPrice(item.price, discounts ?? []);
+    const price = discountedPrice != null ? discountedPrice : (item.lineTotal ?? 0) / item.quantity;
+    return sum + (price * item.quantity);
+  }, 0);
+  const originalSubtotal = summaryItems.reduce((sum, item) => {
+    return sum + ((item.lineTotal ?? 0) / item.quantity) * item.quantity;
+  }, 0);
   const hasSummaryItems = summaryItems.length > 0;
-  const serverSubtotal = isFiniteAmount(cartSubtotal) ? cartSubtotal : undefined;
-  const subtotalValue = hasSummaryItems
-    ? derivedSubtotal > 0
-      ? derivedSubtotal
-      : serverSubtotal ?? derivedSubtotal
-    : serverSubtotal ?? 0;
-  const serverTotal = isFiniteAmount(cartTotal) ? cartTotal : undefined;
-  const totalValue = hasSummaryItems
-    ? derivedSubtotal > 0
-      ? derivedSubtotal
-      : serverTotal ?? derivedSubtotal
-    : serverTotal ?? serverSubtotal ?? 0;
+  const subtotalValue = hasSummaryItems && originalSubtotal > 0 ? originalSubtotal : (cart?.subtotal ?? 0);
+  const discountedSubtotal = derivedSubtotal;
+  const discountTotal = hasSummaryItems && derivedSubtotal > 0 && derivedSubtotal < originalSubtotal
+    ? originalSubtotal - derivedSubtotal
+    : 0;
+  const totalValue = subtotalValue - discountTotal;
   const subtotalLabel = formatCartCurrency(subtotalValue, orderCurrency);
+  const discountedSubtotalLabel = formatCartCurrency(discountedSubtotal, orderCurrency);
   const shippingTotalValue = useMemo(() => calculateShippingTotal(watchedCity), [watchedCity]);
   const shippingLabel = formatCartCurrency(shippingTotalValue, orderCurrency);
   const totalWithShipping = totalValue + shippingTotalValue;
@@ -500,6 +504,9 @@ const Checkout = () => {
             currency: orderCurrency,
             checkout: paymentResponse.checkout as Record<string, unknown>,
             created_at: new Date().toISOString(),
+            subtotal: subtotalValue,
+            discount_total: discountTotal,
+            total: totalWithShipping,
           });
         }
         if (isMintpay) {
@@ -517,21 +524,27 @@ const Checkout = () => {
             currency: orderCurrency,
             checkout: checkoutPayload,
             created_at: new Date().toISOString(),
+            subtotal: subtotalValue,
+            discount_total: discountTotal,
+            total: totalWithShipping,
           });
-        }
-        setRedirectCheckout(redirectCheckout);
-        return;
-      }
+    }
+    setRedirectCheckout(redirectCheckout);
+    return;
+  }
 
-      await placeOrderMutation.mutateAsync({
-        payment_id: paymentId,
-        payment_method_id: method.id,
-        shipping: shippingAddress,
-        billing: shippingAddress,
-        shipping_total: orderShippingTotal,
-        notes: notes.trim() || undefined,
-        currency: orderCurrency,
-      });
+  await placeOrderMutation.mutateAsync({
+    payment_id: paymentId,
+    payment_method_id: method.id,
+    shipping: shippingAddress,
+    billing: shippingAddress,
+    shipping_total: orderShippingTotal,
+    notes: notes.trim() || undefined,
+    currency: orderCurrency,
+    subtotal: subtotalValue,
+    discount_total: discountTotal,
+    total: totalWithShipping,
+  });
       toast.success("Order placed successfully.", {
         description: "A confirmation email is on its way to you.",
       });
@@ -1027,20 +1040,38 @@ const Checkout = () => {
                   {cartLoading ? (
                     <p className="py-4 text-sm text-muted-foreground">Loading order summary…</p>
                   ) : summaryItems.length ? (
-                    summaryItems.map((item) => (
-                      <div key={item.id} className="space-y-1 py-3">
-                        <p className="text-sm font-semibold">{item.name}</p>
-                        <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">
-                          Qty {item.quantity}
-                          {item.variant ? ` · ${item.variant}` : ""}
-                        </p>
-                        <p className="text-sm">
-                          {item.lineTotal != null
-                            ? formatCartCurrency(item.lineTotal, orderCurrency)
-                            : "Price on request"}
-                        </p>
-                      </div>
-                    ))
+                    summaryItems.map((item) => {
+                      const { discountedPrice, appliedDiscount } = applyDiscountToPrice(item.price, discounts ?? []);
+                      const hasDiscount = discountedPrice != null && appliedDiscount != null;
+                      const displayUnitPrice = hasDiscount ? discountedPrice! : item.price;
+                      const displayLineTotal = hasDiscount && discountedPrice != null ? discountedPrice * item.quantity : (item.lineTotal ?? 0);
+                      return (
+                        <div key={item.id} className="space-y-1 py-3">
+                          <p className="text-sm font-semibold">{item.name}</p>
+                          <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">
+                            Qty {item.quantity}
+                            {item.variant ? ` · ${item.variant}` : ""}
+                          </p>
+                          <p className="text-sm">
+                            {item.price != null
+                              ? hasDiscount
+                                ? (
+                                    <span>
+                                      {formatCartCurrency(displayUnitPrice, orderCurrency)} × {item.quantity}
+                                      <span className="ml-2 line-through decoration-destructive/70 text-muted-foreground">
+                                        {formatCartCurrency(item.price, orderCurrency)}
+                                      </span>
+                                      <span className="ml-1 font-medium text-foreground">
+                                        = {formatCartCurrency(displayLineTotal, orderCurrency)}
+                                      </span>
+                                    </span>
+                                  )
+                                : formatCartCurrency(item.lineTotal ?? displayUnitPrice * item.quantity, orderCurrency)
+                              : "Price on request"}
+                          </p>
+                        </div>
+                      );
+                    })
                   ) : (
                     <div className="py-4 text-sm text-muted-foreground">
                       Your bag is empty. Add a product to review totals here.
@@ -1051,7 +1082,11 @@ const Checkout = () => {
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Subtotal</span>
                     <span className="font-medium">
-                      {summaryItems.length ? subtotalLabel : formatCartCurrency(0, orderCurrency)}
+                      {summaryItems.length
+                        ? discountTotal > 0
+                          ? discountedSubtotalLabel
+                          : subtotalLabel
+                        : formatCartCurrency(0, orderCurrency)}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
