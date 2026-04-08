@@ -139,7 +139,7 @@ const buildShippingPayload = (form: ContactFormState, isFirstAddress: boolean): 
 
 const isFiniteAmount = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value);
 
-const FLAT_SHIPPING_TOTAL = 350;
+const FLAT_SHIPPING_TOTAL = 400;
 
 const calculateShippingTotal = (_city?: string | null) => FLAT_SHIPPING_TOTAL;
 
