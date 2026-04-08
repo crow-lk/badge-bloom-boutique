@@ -76,6 +76,9 @@ const MintpaySuccess = () => {
       notes: storedCheckout.notes,
       currency: storedCheckout.currency,
       session_id: storedCheckout.session_id,
+      subtotal: storedCheckout.subtotal,
+      discount_total: storedCheckout.discount_total,
+      total: storedCheckout.total,
     });
   }, [paymentStatus, placeOrderMutation, storedCheckout]);
 
