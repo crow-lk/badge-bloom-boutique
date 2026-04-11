@@ -1,6 +1,7 @@
+import { X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogClose, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { API_BASE_URL } from "@/lib/auth";
 
 type WelcomePopupSettings = {
@@ -85,40 +86,35 @@ const WelcomePopup = () => {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="h-[100dvh] w-screen max-w-screen overflow-hidden p-0 sm:h-auto sm:max-h-[85vh] sm:w-[min(90vw,640px)] sm:max-w-[min(90vw,640px)] [&>button]:z-10 [&>button]:rounded-full [&>button]:bg-background/80 [&>button]:text-foreground [&>button]:backdrop-blur-sm [&>button]:hover:bg-background">
+      <DialogContent className="h-[100dvh] w-screen max-w-screen overflow-hidden p-0 sm:h-auto sm:max-h-[85vh] sm:w-[min(90vw,640px)] sm:max-w-[min(90vw,640px)] bg-transparent border-none shadow-none">
+        <button className="fixed right-4 top-6 z-50 rounded-full bg-background/80 p-2 text-foreground backdrop-blur-sm hover:bg-background sm:absolute sm:right-4 sm:top-4 sm:bottom-auto" onClick={() => handleOpenChange(false)}>
+          <X className="h-5 w-5" />
+        </button>
         {imageUrl ? (
-          <div className="relative flex h-full w-full items-center justify-center bg-background sm:bg-transparent">
-            <div className="flex h-full w-full items-center justify-center p-6 sm:p-8">
+          <div className="flex flex-col h-full w-full items-center justify-center">
+            <div className="flex h-full w-full items-center justify-center">
               <img
                 src={imageUrl}
                 alt="Welcome"
-                className="block max-h-[75vh] max-w-[90vw] object-contain sm:max-h-[70vh] sm:max-w-[520px]"
+                className="block max-h-[55vh] max-w-[90vw] object-contain sm:max-h-[50vh] sm:max-w-[520px]"
               />
             </div>
-            <div className="absolute inset-x-0 bottom-0 space-y-4 bg-background/80 p-6 text-center text-foreground backdrop-blur-sm sm:static sm:bg-transparent sm:p-6 sm:text-center sm:backdrop-blur-0">
+            <div className="w-full space-y-4 px-6 pb-6 text-center">
               {settings?.description && <p className="text-sm text-muted-foreground">{settings.description}</p>}
-              {settings?.link_url ? (
+              {settings?.link_url && (
                 <Button asChild onClick={() => handleOpenChange(false)}>
                   <a href={settings.link_url}>Buy now</a>
                 </Button>
-              ) : (
-                <DialogClose asChild>
-                  <Button variant="secondary">Close</Button>
-                </DialogClose>
               )}
             </div>
           </div>
         ) : (
           <div className="space-y-4 p-6 text-center">
             {settings?.description && <p className="text-sm text-muted-foreground">{settings.description}</p>}
-            {settings?.link_url ? (
+            {settings?.link_url && (
               <Button asChild onClick={() => handleOpenChange(false)}>
                 <a href={settings.link_url}>Buy now</a>
               </Button>
-            ) : (
-              <DialogClose asChild>
-                <Button variant="secondary">Close</Button>
-              </DialogClose>
             )}
           </div>
         )}
