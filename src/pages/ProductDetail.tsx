@@ -35,6 +35,7 @@ type ColorOption = {
 const ProductDetail = () => {
   const { slug } = useParams<{ slug: string }>();
   const { data, isLoading, isError } = useProducts();
+  const { data: discounts } = useDiscounts();
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
@@ -636,10 +637,9 @@ const ProductDetail = () => {
               </div>
 
               <div className="flex flex-wrap items-center gap-4">
-                {(() => {
-                  const { data: discounts } = useDiscounts();
-                  const { discountedPrice, appliedDiscount } = applyDiscountToPrice(selectedPrice, discounts ?? []);
-                  const hasDiscount = discountedPrice != null && appliedDiscount != null;
+{(() => {
+                   const { discountedPrice, appliedDiscount } = applyDiscountToPrice(selectedPrice, discounts ?? []);
+                   const hasDiscount = discountedPrice != null && appliedDiscount != null;
 
                   const formatPrice = (value: number) =>
                     new Intl.NumberFormat("en-LK", {
@@ -935,7 +935,7 @@ const ProductDetail = () => {
                       <Badge variant="outline">{displayValue(item.status)}</Badge>
                     </div>
                     <h4 className="text-base font-light tracking-wide md:text-lg">{item.name}</h4>
-                    <PriceWithDiscount price={item.price} />
+                    <PriceWithDiscount price={item.price} discounts={discounts} />
                   </div>
                 </Link>
               ))}
@@ -1026,8 +1026,7 @@ const ProductDetailSkeleton = ({ priceLabel }: { priceLabel?: string }) => (
   </div>
 );
 
-const PriceWithDiscount = ({ price }: { price: number | null | undefined }) => {
-  const { data: discounts } = useDiscounts();
+const PriceWithDiscount = ({ price, discounts }: { price: number | null | undefined; discounts: typeof discounts }) => {
   const { discountedPrice, appliedDiscount } = applyDiscountToPrice(price ?? null, discounts ?? []);
   const hasDiscount = discountedPrice != null && appliedDiscount != null;
 
