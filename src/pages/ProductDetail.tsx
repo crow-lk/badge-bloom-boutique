@@ -12,7 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { filterActiveProducts, sortProductsNewestFirst } from "@/lib/product-status";
-import { fallbackProducts, getProductDisplayPrice, useProducts, type Color, type Product } from "@/hooks/use-products";
+import { fallbackProducts, getProductDisplayPrice, useProducts, type Color, type Product, type ProductVariant } from "@/hooks/use-products";
 import { useDiscounts, applyDiscountToPrice } from "@/hooks/use-discounts";
 import { getStoredToken } from "@/lib/auth";
 import { addCartItem } from "@/lib/cart";
@@ -30,6 +30,86 @@ type ColorOption = {
   value: string;
   label: string;
   hex?: string;
+};
+
+const getVariantImages = (variant?: ProductVariant): string[] => {
+  if (!variant) return [];
+
+  const candidate = variant.images ?? variant.image ?? variant.thumbnail;
+
+  if (Array.isArray(candidate)) {
+    return candidate
+      .map((image) => (typeof image === "string" ? image.trim() : ""))
+      .filter(Boolean);
+  }
+
+  if (typeof candidate === "string" && candidate.trim()) {
+    return [candidate.trim()];
+  }
+
+  return [];
+};
+
+const getVariantSizeValue = (variant: ProductVariant): string =>
+  variant.size_name || variant.size_id?.toString() || "";
+
+const getVariantColorValue = (variant: ProductVariant): string =>
+  variant.color?.name || variant.color?.id?.toString() || "";
+
+const findExactVariantIndex = (
+  variants: ProductVariant[] | undefined,
+  size: string | null,
+  color: string | null,
+) => {
+  if (!variants?.length || !size) return -1;
+
+  return variants.findIndex(
+    (variant) =>
+      getVariantSizeValue(variant) === size &&
+      (!color || getVariantColorValue(variant) === color),
+  );
+};
+
+const findFirstAvailableVariantForColor = (
+  variants: ProductVariant[] | undefined,
+  color: string,
+) => variants?.find((variant) => getVariantColorValue(variant) === color && variant.quantity > 0);
+
+const getVariantImageIndex = (product: Product, variantIndex: number): number => {
+  const variant = product.variants?.[variantIndex];
+  if (!variant || !product.images.length) return -1;
+
+  const color = getVariantColorValue(variant);
+  const variants = product.variants ?? [];
+
+  if (!color) {
+    return variantIndex < product.images.length ? variantIndex : -1;
+  }
+
+  const colorOrder: string[] = [];
+  const variantIndexesByColor = new Map<string, number[]>();
+
+  variants.forEach((item, index) => {
+    const itemColor = getVariantColorValue(item);
+    if (!itemColor) return;
+
+    if (!variantIndexesByColor.has(itemColor)) {
+      variantIndexesByColor.set(itemColor, []);
+      colorOrder.push(itemColor);
+    }
+
+    variantIndexesByColor.get(itemColor)?.push(index);
+  });
+
+  const colorIndex = colorOrder.indexOf(color);
+  if (colorIndex < 0) return -1;
+
+  const groupSize = Math.max(1, Math.ceil(product.images.length / colorOrder.length));
+  const groupStart = colorIndex * groupSize;
+  const withinColorIndex = variantIndexesByColor.get(color)?.indexOf(variantIndex) ?? -1;
+  const imageIndex = groupStart + withinColorIndex;
+
+  return imageIndex < product.images.length ? imageIndex : -1;
 };
 
 const ProductDetail = () => {
@@ -125,11 +205,27 @@ const ProductDetail = () => {
     return Array.from(options.values());
   }, [product]);
 
+  const displayImages = useMemo(() => {
+    if (!product) return [];
+
+    const images = [...product.images];
+
+    product.variants?.forEach((variant) => {
+      getVariantImages(variant).forEach((image) => {
+        if (!images.includes(image)) {
+          images.push(image);
+        }
+      });
+    });
+
+    return images;
+  }, [product]);
+
   // Check if a size is available (has stock)
   const isSizeAvailable = (size: string): boolean => {
     if (!product?.variants?.length) return true;
     const variant = product.variants.find(
-      (v) => (v.size_name || v.size_id?.toString() || "") === size,
+      (v) => getVariantSizeValue(v) === size,
     );
     return variant ? variant.quantity > 0 : true;
   };
@@ -139,9 +235,8 @@ const ProductDetail = () => {
 
     return product.variants.some(
       (v) =>
-        (v.color?.name || v.color?.id?.toString()) === color &&
-        (!selectedSize ||
-          (v.size_name || v.size_id?.toString()) === selectedSize) &&
+        getVariantColorValue(v) === color &&
+        (!selectedSize || getVariantSizeValue(v) === selectedSize) &&
         v.quantity > 0,
     );
   };
@@ -151,10 +246,8 @@ const ProductDetail = () => {
 
     const variant = product.variants.find(
       (v) =>
-        (!selectedSize ||
-          (v.size_name || v.size_id?.toString()) === selectedSize) &&
-        (!selectedColor ||
-          (v.color?.name || v.color?.id?.toString()) === selectedColor),
+        (!selectedSize || getVariantSizeValue(v) === selectedSize) &&
+        (!selectedColor || getVariantColorValue(v) === selectedColor),
     );
 
     return variant?.quantity ?? 0;
@@ -177,7 +270,7 @@ const ProductDetail = () => {
     if (product?.variants?.length) {
       const firstAvailableVariant =
         product.variants.find((variant) => variant.quantity > 0) ?? product.variants[0];
-      const variantSize = firstAvailableVariant?.size_name || firstAvailableVariant?.size_id?.toString() || "";
+      const variantSize = getVariantSizeValue(firstAvailableVariant);
       if (variantSize) {
         setSelectedSize(variantSize);
         return;
@@ -201,30 +294,95 @@ const ProductDetail = () => {
     setSelectedColor(firstAvailableColor?.value ?? null);
   }, [selectedSize, colorOptions, product?.variants, selectedColor]);
 
-  // Get price based on selected variant or default product price
-  const getSelectedVariant = () => {
-    if (!product?.variants?.length) return undefined;
+  const selectedVariant = useMemo(
+    () => {
+      if (!product?.variants?.length) return undefined;
 
-    return (
-      product.variants.find(
-        (v) =>
-          (!selectedSize ||
-            (v.size_name || v.size_id?.toString()) === selectedSize) &&
-          (!selectedColor ||
-            (v.color?.name || v.color?.id?.toString()) === selectedColor),
-      ) ??
-      product.variants.find((v) => v.quantity > 0) ??
-      product.variants[0]
-    );
-  };
+      return (
+        product.variants.find(
+          (v) =>
+            (!selectedSize || getVariantSizeValue(v) === selectedSize) &&
+            (!selectedColor || getVariantColorValue(v) === selectedColor),
+        ) ??
+        product.variants.find((v) => v.quantity > 0) ??
+        product.variants[0]
+      );
+    },
+    [product?.variants, selectedSize, selectedColor],
+  );
+
+  const exactSelectedVariantIndex = useMemo(
+    () => findExactVariantIndex(product?.variants, selectedSize, selectedColor),
+    [product?.variants, selectedSize, selectedColor],
+  );
+
+  const exactSelectedVariant =
+    exactSelectedVariantIndex >= 0 ? product?.variants?.[exactSelectedVariantIndex] : undefined;
 
   const getSelectedPrice = () => {
-    const variant = getSelectedVariant();
-    if (variant?.selling_price !== undefined && variant?.selling_price !== null) {
-      return variant.selling_price;
+    if (selectedVariant?.selling_price !== undefined && selectedVariant?.selling_price !== null) {
+      return selectedVariant.selling_price;
     }
     return product?.price ?? null;
   };
+
+  const handleSizeSelect = (size: string) => {
+    setSelectedSize(size);
+
+    if (!selectedColor || !product?.variants?.length) return;
+
+    const exactVariantIndex = findExactVariantIndex(product.variants, size, selectedColor);
+    if (exactVariantIndex >= 0) return;
+
+    const nextAvailableColor = colorOptions.find((colorOption) =>
+      product.variants?.some(
+        (variant) =>
+          getVariantSizeValue(variant) === size &&
+          getVariantColorValue(variant) === colorOption.value &&
+          variant.quantity > 0,
+      ),
+    );
+
+    setSelectedColor(nextAvailableColor?.value ?? null);
+  };
+
+  const handleColorSelect = (color: string) => {
+    const exactVariantIndex = findExactVariantIndex(product?.variants, selectedSize, color);
+
+    if (exactVariantIndex >= 0) {
+      setSelectedColor(color);
+      return;
+    }
+
+    const nextVariant = findFirstAvailableVariantForColor(product?.variants, color);
+    if (!nextVariant) return;
+
+    setSelectedSize(getVariantSizeValue(nextVariant));
+    setSelectedColor(color);
+  };
+
+  const selectedVariantImage = useMemo(() => {
+    const variantImage = getVariantImages(exactSelectedVariant)[0];
+    if (variantImage) return variantImage;
+
+    if (product && exactSelectedVariantIndex >= 0) {
+      const imageIndex = getVariantImageIndex(product, exactSelectedVariantIndex);
+      if (imageIndex >= 0 && product.images[imageIndex]) {
+        return product.images[imageIndex];
+      }
+    }
+
+    return undefined;
+  }, [exactSelectedVariant, exactSelectedVariantIndex, product]);
+
+  useEffect(() => {
+    if (!selectedVariantImage || !displayImages.length) return;
+
+    const imageIndex = displayImages.indexOf(selectedVariantImage);
+    if (imageIndex >= 0) {
+      setCurrentImageIndex(imageIndex);
+    }
+  }, [selectedColor, selectedSize, selectedVariantImage, displayImages]);
 
   const selectedPrice = getSelectedPrice();
   const selectedPriceLabel = selectedPrice == null 
@@ -322,14 +480,14 @@ const ProductDetail = () => {
     );
   }
 
-  const heroImage = product.images[currentImageIndex] ?? product.images[0];
+  const heroImage = displayImages[currentImageIndex] ?? displayImages[0];
   const canGoPrev = currentImageIndex > 0;
-  const canGoNext = currentImageIndex < product.images.length - 1;
+  const canGoNext = currentImageIndex < displayImages.length - 1;
 
   const goToIndex = (index: number) => {
     if (index === currentImageIndex) return;
     setFlipDirection(index > currentImageIndex ? "forward" : "backward");
-    setCurrentImageIndex(Math.max(0, Math.min(product.images.length - 1, index)));
+    setCurrentImageIndex(Math.max(0, Math.min(displayImages.length - 1, index)));
   };
 
   const handleHeroClick = () => {
@@ -367,7 +525,6 @@ const ProductDetail = () => {
   const handleAddToBag = async () => {
     if (inquiryOnly) return;
     
-    const selectedVariant = getSelectedVariant();
     const variantId = selectedVariant?.id || product.id;
     
     if (!variantId) {
@@ -394,7 +551,6 @@ const ProductDetail = () => {
 
     if (!requireAuth()) return;
 
-    const selectedVariant = getSelectedVariant();
     const variantId = selectedVariant?.id || product.id;
 
     if (!variantId) {
@@ -452,7 +608,7 @@ const ProductDetail = () => {
     if (distance > 0 && canGoNext) {
       // swipe left → next
       setFlipDirection("forward");
-      setCurrentImageIndex((i) => Math.min(i + 1, product.images.length - 1));
+      setCurrentImageIndex((i) => Math.min(i + 1, displayImages.length - 1));
     } else if (distance < 0 && canGoPrev) {
       // swipe right → prev
       setFlipDirection("backward");
@@ -576,7 +732,7 @@ const ProductDetail = () => {
                       opts={{ loop: false }}
                     >
                       <CarouselContent className="h-full ml-0">
-                        {product.images.map((image, index) => (
+                        {displayImages.map((image, index) => (
                           <CarouselItem key={`${image}-${index}`} className="h-full pl-0">
                             <div className="flex h-[100dvh] w-full items-center justify-center bg-black">
                               <img
@@ -599,7 +755,7 @@ const ProductDetail = () => {
 
               <div className="mx-auto w-full max-w-[480px] md:max-w-[520px]">
                 <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory touch-pan-x [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-                  {product.images.map((image, index) => (
+                  {displayImages.map((image, index) => (
                     <button
                       key={`${image}-${index}`}
                       type="button"
@@ -682,7 +838,7 @@ const ProductDetail = () => {
                         return (
                           <button
                             key={size}
-                            onClick={() => available && setSelectedSize(size)}
+                            onClick={() => available && handleSizeSelect(size)}
                             disabled={!available}
                             className={cn(
                               "px-4 py-2 rounded-md border text-sm font-medium transition-colors",
@@ -714,7 +870,7 @@ const ProductDetail = () => {
                             <button
                               key={color.value}
                               type="button"
-                              onClick={() => available && setSelectedColor(color.value)}
+                              onClick={() => available && handleColorSelect(color.value)}
                               disabled={!available}
                               className={cn(
                                 "relative h-10 w-10 rounded-full border transition-colors",
