@@ -13,6 +13,11 @@ export type Color = {
   hex: string;
 };
 
+export type ProductImage = {
+  url: string;
+  color?: Color | null;
+};
+
 export type ProductVariant = {
   id: number | string;
   sku?: string;
@@ -50,7 +55,7 @@ export type ApiProduct = {
   status?: string | null;
   selling_price?: number | null;
   highlights?: string[] | null;
-  images?: string[] | null;
+  images?: Array<string | ProductImage> | null;
   inquiry_only?: boolean;
   show_price_inquiry_mode?: boolean;
   variants?: ProductVariant[];
@@ -65,6 +70,7 @@ export type Product = {
   priceLabel: string;
   image: string;
   images: string[];
+  imageMeta?: ProductImage[];
   sizes: string[];
   variants?: ProductVariant[];
   colors: Color[];
@@ -113,6 +119,30 @@ const getFirstVariantPrice = (variants?: ProductVariant[]) => {
 const buildGallery = (index: number) =>
   Array.from({ length: 4 }, (_, offset) => fallbackImages[(index + offset) % fallbackImages.length]);
 
+const normalizeImages = (product: ApiProduct, index: number): ProductImage[] => {
+  const rawImages = product.images ?? [];
+
+  const normalized = rawImages
+    .map((image) => {
+      if (typeof image === "string") {
+        const url = image.trim();
+        return url ? { url, color: undefined } : null;
+      }
+
+      if (image && typeof image.url === "string") {
+        const url = image.url.trim();
+        return url ? { ...image, url, color: image.color ?? undefined } : null;
+      }
+
+      return null;
+    })
+    .filter((image): image is ProductImage => Boolean(image?.url));
+
+  if (normalized.length) return normalized;
+
+  return buildGallery(index).map((url) => ({ url, color: undefined }));
+};
+
 const deriveSizes = (product: ApiProduct) => {
   const fromSizes =
     product.sizes?.map((size) => (size == null ? "" : String(size).trim())).filter(Boolean) ?? [];
@@ -145,7 +175,7 @@ const buildHighlights = (product: ApiProduct) => {
 };
 
 const normalizeProduct = (product: ApiProduct, index: number): Product => {
-  const gallery = product.images?.length ? product.images : buildGallery(index);
+  const gallery = normalizeImages(product, index);
   const sizes = deriveSizes(product);
   const inquiryOnly = Boolean(product.inquiry_only);
   const showPriceInquiryMode =
@@ -173,8 +203,9 @@ const normalizeProduct = (product: ApiProduct, index: number): Product => {
     slug: product.slug ?? `product-${product.id}`,
     price: resolvedPrice,
     priceLabel: formatPrice(resolvedPrice),
-    image: gallery[0],
-    images: gallery,
+    image: gallery[0].url,
+    images: gallery.map(({ url }) => url),
+    imageMeta: gallery,
     sizes,
     variants: product.variants,
     colors: colors ?? [],
