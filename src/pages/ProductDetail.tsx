@@ -12,13 +12,13 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { filterActiveProducts, sortProductsNewestFirst } from "@/lib/product-status";
-import { fallbackProducts, getProductDisplayPrice, useProducts, type Color, type Product, type ProductVariant } from "@/hooks/use-products";
+import { fallbackProducts, getProductDisplayPrice, useProducts, type Color, type Product, type ProductImage, type ProductVariant } from "@/hooks/use-products";
 import { useDiscounts, applyDiscountToPrice } from "@/hooks/use-discounts";
 import { getStoredToken } from "@/lib/auth";
 import { addCartItem } from "@/lib/cart";
 import { cn } from "@/lib/utils";
 import { ArrowLeft, ArrowRight, Check, ChevronLeft, ChevronRight, Heart, ShieldCheck, Sparkles, Truck } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -32,29 +32,14 @@ type ColorOption = {
   hex?: string;
 };
 
-const getVariantImages = (variant?: ProductVariant): string[] => {
-  if (!variant) return [];
-
-  const candidate = variant.images ?? variant.image ?? variant.thumbnail;
-
-  if (Array.isArray(candidate)) {
-    return candidate
-      .map((image) => (typeof image === "string" ? image.trim() : ""))
-      .filter(Boolean);
-  }
-
-  if (typeof candidate === "string" && candidate.trim()) {
-    return [candidate.trim()];
-  }
-
-  return [];
-};
-
 const getVariantSizeValue = (variant: ProductVariant): string =>
   variant.size_name || variant.size_id?.toString() || "";
 
 const getVariantColorValue = (variant: ProductVariant): string =>
-  variant.color?.name || variant.color?.id?.toString() || "";
+  variant.color?.id?.toString() || variant.color?.name || "";
+
+const getImageColorValue = (image: ProductImage): string =>
+  image.color?.id?.toString() || image.color?.name || "";
 
 const findExactVariantIndex = (
   variants: ProductVariant[] | undefined,
@@ -74,43 +59,6 @@ const findFirstAvailableVariantForColor = (
   variants: ProductVariant[] | undefined,
   color: string,
 ) => variants?.find((variant) => getVariantColorValue(variant) === color && variant.quantity > 0);
-
-const getVariantImageIndex = (product: Product, variantIndex: number): number => {
-  const variant = product.variants?.[variantIndex];
-  if (!variant || !product.images.length) return -1;
-
-  const color = getVariantColorValue(variant);
-  const variants = product.variants ?? [];
-
-  if (!color) {
-    return variantIndex < product.images.length ? variantIndex : -1;
-  }
-
-  const colorOrder: string[] = [];
-  const variantIndexesByColor = new Map<string, number[]>();
-
-  variants.forEach((item, index) => {
-    const itemColor = getVariantColorValue(item);
-    if (!itemColor) return;
-
-    if (!variantIndexesByColor.has(itemColor)) {
-      variantIndexesByColor.set(itemColor, []);
-      colorOrder.push(itemColor);
-    }
-
-    variantIndexesByColor.get(itemColor)?.push(index);
-  });
-
-  const colorIndex = colorOrder.indexOf(color);
-  if (colorIndex < 0) return -1;
-
-  const groupSize = Math.max(1, Math.ceil(product.images.length / colorOrder.length));
-  const groupStart = colorIndex * groupSize;
-  const withinColorIndex = variantIndexesByColor.get(color)?.indexOf(variantIndex) ?? -1;
-  const imageIndex = groupStart + withinColorIndex;
-
-  return imageIndex < product.images.length ? imageIndex : -1;
-};
 
 const ProductDetail = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -183,7 +131,7 @@ const ProductDetail = () => {
 
     const addColor = (color?: Color | null) => {
       if (!color) return;
-      const value = color.name || color.id?.toString() || "";
+      const value = color.id?.toString() || color.name || "";
       if (!value) return;
       const label = color.name || value;
       const hex = color.hex?.trim() || undefined;
@@ -205,32 +153,17 @@ const ProductDetail = () => {
     return Array.from(options.values());
   }, [product]);
 
-  const displayImages = useMemo(() => {
-    if (!product) return [];
+  const displayImages = useMemo(() => product?.images ?? [], [product?.images]);
 
-    const images = [...product.images];
-
-    product.variants?.forEach((variant) => {
-      getVariantImages(variant).forEach((image) => {
-        if (!images.includes(image)) {
-          images.push(image);
-        }
-      });
-    });
-
-    return images;
-  }, [product]);
-
-  // Check if a size is available (has stock)
-  const isSizeAvailable = (size: string): boolean => {
+  const isSizeAvailable = useCallback((size: string): boolean => {
     if (!product?.variants?.length) return true;
     const variant = product.variants.find(
       (v) => getVariantSizeValue(v) === size,
     );
     return variant ? variant.quantity > 0 : true;
-  };
+  }, [product?.variants]);
 
-  const isColorAvailable = (color: string): boolean => {
+  const isColorAvailable = useCallback((color: string): boolean => {
     if (!product?.variants?.length) return true;
 
     return product.variants.some(
@@ -239,7 +172,7 @@ const ProductDetail = () => {
         (!selectedSize || getVariantSizeValue(v) === selectedSize) &&
         v.quantity > 0,
     );
-  };
+  }, [product?.variants, selectedSize]);
 
   const getMaxQuantityForSelection = (): number => {
     if (!product?.variants?.length) return 999;
@@ -280,7 +213,7 @@ const ProductDetail = () => {
       const firstAvailable = allSizes.find((size) => isSizeAvailable(size));
       setSelectedSize(firstAvailable || allSizes[0]);
     }
-  }, [allSizes, product?.variants, selectedSize]);
+  }, [allSizes, product?.variants, selectedSize, isSizeAvailable]);
 
   useEffect(() => {
     if (!colorOptions.length) {
@@ -292,7 +225,7 @@ const ProductDetail = () => {
 
     const firstAvailableColor = colorOptions.find((color) => isColorAvailable(color.value));
     setSelectedColor(firstAvailableColor?.value ?? null);
-  }, [selectedSize, colorOptions, product?.variants, selectedColor]);
+  }, [selectedSize, colorOptions, product?.variants, selectedColor, isColorAvailable]);
 
   const selectedVariant = useMemo(
     () => {
@@ -311,13 +244,17 @@ const ProductDetail = () => {
     [product?.variants, selectedSize, selectedColor],
   );
 
-  const exactSelectedVariantIndex = useMemo(
-    () => findExactVariantIndex(product?.variants, selectedSize, selectedColor),
-    [product?.variants, selectedSize, selectedColor],
-  );
+  const selectedColorImageIndex = useMemo(() => {
+    if (!selectedColor || !product?.imageMeta?.length) return -1;
 
-  const exactSelectedVariant =
-    exactSelectedVariantIndex >= 0 ? product?.variants?.[exactSelectedVariantIndex] : undefined;
+    return product.imageMeta.findIndex((image) => getImageColorValue(image) === selectedColor);
+  }, [selectedColor, product?.imageMeta]);
+
+  useEffect(() => {
+    if (selectedColorImageIndex < 0 || !displayImages[selectedColorImageIndex]) return;
+
+    setCurrentImageIndex(selectedColorImageIndex);
+  }, [selectedColorImageIndex, displayImages]);
 
   const getSelectedPrice = () => {
     if (selectedVariant?.selling_price !== undefined && selectedVariant?.selling_price !== null) {
@@ -360,29 +297,6 @@ const ProductDetail = () => {
     setSelectedSize(getVariantSizeValue(nextVariant));
     setSelectedColor(color);
   };
-
-  const selectedVariantImage = useMemo(() => {
-    const variantImage = getVariantImages(exactSelectedVariant)[0];
-    if (variantImage) return variantImage;
-
-    if (product && exactSelectedVariantIndex >= 0) {
-      const imageIndex = getVariantImageIndex(product, exactSelectedVariantIndex);
-      if (imageIndex >= 0 && product.images[imageIndex]) {
-        return product.images[imageIndex];
-      }
-    }
-
-    return undefined;
-  }, [exactSelectedVariant, exactSelectedVariantIndex, product]);
-
-  useEffect(() => {
-    if (!selectedVariantImage || !displayImages.length) return;
-
-    const imageIndex = displayImages.indexOf(selectedVariantImage);
-    if (imageIndex >= 0) {
-      setCurrentImageIndex(imageIndex);
-    }
-  }, [selectedColor, selectedSize, selectedVariantImage, displayImages]);
 
   const selectedPrice = getSelectedPrice();
   const selectedPriceLabel = selectedPrice == null 
