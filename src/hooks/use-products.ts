@@ -22,6 +22,9 @@ export type ProductVariant = {
   quantity: number;
   status?: string;
   color?: Color | null;
+  image?: string | null;
+  images?: string[] | null;
+  thumbnail?: string | null;
 };
 
 export type ApiProduct = {
