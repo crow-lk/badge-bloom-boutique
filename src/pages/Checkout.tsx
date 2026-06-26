@@ -466,6 +466,7 @@ const Checkout = () => {
     const shippingAddress = buildCheckoutAddressFromContact(contactForm);
     const customerPayload = buildPaymentCustomerPayload(contactForm);
     const orderShippingTotal = calculateShippingTotal(shippingAddress.city);
+    const orderTotal = totalValue + orderShippingTotal;
     const itemsDescription =
       summaryItems.map((item) => `${item.quantity}x ${item.name}`).join(", ") || "Order payment";
 
@@ -478,6 +479,10 @@ const Checkout = () => {
         payment_method_id: method.id,
         customer: customerPayload,
         items_description: itemsDescription,
+        currency: orderCurrency,
+        subtotal: subtotalValue,
+        discount_total: discountTotal,
+        total: orderTotal,
         shipping_total: orderShippingTotal,
         return_url: isPayHere && origin ? `${origin}/payments/payhere/return` : undefined,
         cancel_url: isPayHere && origin ? `${origin}/payments/payhere/cancel` : undefined,
@@ -506,7 +511,7 @@ const Checkout = () => {
             created_at: new Date().toISOString(),
             subtotal: subtotalValue,
             discount_total: discountTotal,
-            total: totalWithShipping,
+            total: orderTotal,
           });
         }
         if (isMintpay) {
@@ -526,7 +531,7 @@ const Checkout = () => {
             created_at: new Date().toISOString(),
             subtotal: subtotalValue,
             discount_total: discountTotal,
-            total: totalWithShipping,
+            total: orderTotal,
           });
     }
     setRedirectCheckout(redirectCheckout);
@@ -543,7 +548,7 @@ const Checkout = () => {
     currency: orderCurrency,
     subtotal: subtotalValue,
     discount_total: discountTotal,
-    total: totalWithShipping,
+    total: orderTotal,
   });
       toast.success("Order placed successfully.", {
         description: "A confirmation email is on its way to you.",
