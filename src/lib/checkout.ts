@@ -38,6 +38,7 @@ export type InitiatePaymentInput = {
   items_description?: string;
   session_id?: string | null;
   currency?: string;
+  amount?: number;
   subtotal?: number;
   discount_total?: number;
   total?: number;
