@@ -37,6 +37,10 @@ export type InitiatePaymentInput = {
   customer: PaymentCustomerInput;
   items_description?: string;
   session_id?: string | null;
+  currency?: string;
+  subtotal?: number;
+  discount_total?: number;
+  total?: number;
   shipping_total?: number;
   return_url?: string;
   cancel_url?: string;
