@@ -466,7 +466,7 @@ const Checkout = () => {
     const shippingAddress = buildCheckoutAddressFromContact(contactForm);
     const customerPayload = buildPaymentCustomerPayload(contactForm);
     const orderShippingTotal = calculateShippingTotal(shippingAddress.city);
-    const orderTotal = totalValue + orderShippingTotal;
+    const orderTotal = Number((totalValue + orderShippingTotal).toFixed(2));
     const itemsDescription =
       summaryItems.map((item) => `${item.quantity}x ${item.name}`).join(", ") || "Order payment";
 
@@ -480,6 +480,7 @@ const Checkout = () => {
         customer: customerPayload,
         items_description: itemsDescription,
         currency: orderCurrency,
+        amount: orderTotal,
         subtotal: subtotalValue,
         discount_total: discountTotal,
         total: orderTotal,
