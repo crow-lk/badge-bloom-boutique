@@ -2,6 +2,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { filterActiveProducts, sortProductsNewestFirst } from "@/lib/product-status";
 import { fallbackProducts, useProducts, getProductDisplayPrice } from "@/hooks/use-products";
+import { getProductCardVariants } from "@/lib/product-card-variants";
 import ProductCard from "./ProductCard";
 
 const loadingSlots = Array.from({ length: 4 });
@@ -46,17 +47,21 @@ const ProductGrid = () => {
                   </div>
                 </div>
               ))
-            : visibleProducts.map((product) => (
-                <ProductCard
-                  key={product.slug}
-                  image={product.image}
-                  name={product.name}
-                  price={getProductDisplayPrice(product)}
-                  priceValue={product.inquiryOnly ? null : product.price}
-                  sizes={product.sizes}
-                  slug={product.slug}
-                />
-              ))}
+            : visibleProducts.flatMap((product) =>
+                getProductCardVariants(product).map((cardVariant) => (
+                  <ProductCard
+                    key={cardVariant.key}
+                    image={cardVariant.image}
+                    name={product.name}
+                    price={getProductDisplayPrice(product)}
+                    priceValue={product.inquiryOnly ? null : product.price}
+                    sizes={product.sizes}
+                    colors={product.colors}
+                    selectedColor={cardVariant.color}
+                    slug={product.slug}
+                  />
+                )),
+              )}
         </div>
       </div>
     </section>

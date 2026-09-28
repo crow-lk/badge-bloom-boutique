@@ -2,6 +2,7 @@ import MintpayBreakdown from "@/components/MintpayBreakdown";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { useDiscounts, applyDiscountToPrice } from "@/hooks/use-discounts";
+import type { Color } from "@/hooks/use-products";
 import { Link } from "react-router-dom";
 
 interface ProductCardProps {
@@ -10,10 +11,12 @@ interface ProductCardProps {
   price: string;
   priceValue?: number | null;
   sizes?: string[];
+  colors?: Color[];
+  selectedColor?: Color;
   slug?: string;
 }
 
-const ProductCard = ({ image, name, price, priceValue, sizes, slug }: ProductCardProps) => {
+const ProductCard = ({ image, name, price, priceValue, sizes, colors, selectedColor, slug }: ProductCardProps) => {
   const { data: discounts } = useDiscounts();
   const sizeLabel = sizes?.length ? sizes.join(" · ") : "Sizes available";
 
@@ -48,6 +51,19 @@ const ProductCard = ({ image, name, price, priceValue, sizes, slug }: ProductCar
         </div>
       </div>
       <div className="p-6">
+        {colors?.length ? (
+          <div className="mb-3 flex min-h-4 items-center gap-2" aria-label={`Available colors for ${name}`}>
+            {colors.map((color) => (
+              <span
+                key={color.id}
+                className="size-3 rounded-full border border-border shadow-sm"
+                style={{ backgroundColor: color.hex }}
+                aria-label={color.name}
+                title={color.name}
+              />
+            ))}
+          </div>
+        ) : null}
         <h3 className="mb-2 text-lg font-light tracking-wide text-foreground">{name}</h3>
         <div className="space-y-1">
           {hasDiscount ? (
@@ -70,7 +86,10 @@ const ProductCard = ({ image, name, price, priceValue, sizes, slug }: ProductCar
   );
 
   return slug ? (
-    <Link to={`/products/${slug}`} className="block h-full text-foreground no-underline">
+    <Link
+      to={`/products/${slug}${selectedColor ? `?color=${encodeURIComponent(selectedColor.id)}` : ""}`}
+      className="block h-full text-foreground no-underline"
+    >
       {card}
     </Link>
   ) : (

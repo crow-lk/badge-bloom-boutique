@@ -8,6 +8,7 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
+    "test": "node tests/product-card-colors.test.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

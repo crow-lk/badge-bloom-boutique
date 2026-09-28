@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useCollections } from "@/hooks/use-collections";
 import { fallbackCategories, useCategories } from "@/hooks/use-categories";
 import { filterActiveProducts, sortProductsNewestFirst } from "@/lib/product-status";
+import { getProductCardVariants } from "@/lib/product-card-variants";
 import { fallbackProducts, getProductDisplayPrice, useProducts, type Product } from "@/hooks/use-products";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -235,17 +236,21 @@ const Products = () => {
             </div>
           ) : filteredProducts.length ? (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredProducts.map((product) => (
-                <ProductCard
-                  key={product.slug}
-                  image={product.image}
-                  name={product.name}
-                  price={getProductDisplayPrice(product)}
-                  priceValue={product.inquiryOnly ? null : product.price}
-                  sizes={product.sizes}
-                  slug={product.slug}
-                />
-              ))}
+              {filteredProducts.flatMap((product) =>
+                getProductCardVariants(product).map((cardVariant) => (
+                  <ProductCard
+                    key={cardVariant.key}
+                    image={cardVariant.image}
+                    name={product.name}
+                    price={getProductDisplayPrice(product)}
+                    priceValue={product.inquiryOnly ? null : product.price}
+                    sizes={product.sizes}
+                    colors={product.colors}
+                    selectedColor={cardVariant.color}
+                    slug={product.slug}
+                  />
+                )),
+              )}
             </div>
           ) : (
             <Card className="border border-border bg-card/80 p-6 text-center text-sm text-muted-foreground">
