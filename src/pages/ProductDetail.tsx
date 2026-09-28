@@ -77,6 +77,7 @@ const ProductDetail = () => {
   const touchStartX = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
   const didSwipeRef = useRef(false);
+  const appliedRequestedColorRef = useRef<string | null>(null);
 
   const SWIPE_THRESHOLD = 50;
 
@@ -92,6 +93,10 @@ const ProductDetail = () => {
     if (!slug) return activeProducts[0];
     return activeProducts.find((item) => item.slug === slug);
   }, [activeProducts, slug]);
+  const requestedColor = useMemo(
+    () => new URLSearchParams(location.search).get("color")?.trim() ?? "",
+    [location.search],
+  );
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [flipDirection, setFlipDirection] = useState<"forward" | "backward">("forward");
@@ -223,9 +228,31 @@ const ProductDetail = () => {
 
     if (selectedColor && isColorAvailable(selectedColor)) return;
 
+    const requestKey = product && requestedColor ? `${product.slug}:${requestedColor}` : null;
+    if (requestKey && appliedRequestedColorRef.current !== requestKey) return;
+
     const firstAvailableColor = colorOptions.find((color) => isColorAvailable(color.value));
     setSelectedColor(firstAvailableColor?.value ?? null);
-  }, [selectedSize, colorOptions, product?.variants, selectedColor, isColorAvailable]);
+  }, [selectedSize, colorOptions, product, requestedColor, selectedColor, isColorAvailable]);
+
+  useEffect(() => {
+    if (!product || !requestedColor || !colorOptions.length) return;
+
+    const requestKey = `${product.slug}:${requestedColor}`;
+    if (appliedRequestedColorRef.current === requestKey) return;
+
+    const requestedOption = colorOptions.find((color) => color.value === requestedColor);
+    if (!requestedOption) return;
+
+    const requestedVariant = findFirstAvailableVariantForColor(product.variants, requestedOption.value);
+    if (requestedVariant) {
+      const requestedSize = getVariantSizeValue(requestedVariant);
+      if (requestedSize) setSelectedSize(requestedSize);
+    }
+
+    setSelectedColor(requestedOption.value);
+    appliedRequestedColorRef.current = requestKey;
+  }, [product, requestedColor, colorOptions]);
 
   const selectedVariant = useMemo(
     () => {
